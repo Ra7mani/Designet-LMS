@@ -21,7 +21,7 @@ class Lecon extends Model
     ];
 
     protected $casts = [
-        'type' => LessonType::class,
+        //'type' => LessonType::class,
     ];
 
     public function chapitre()

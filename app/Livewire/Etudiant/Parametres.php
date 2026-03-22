@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 
-#[Layout('components.layouts.etudiant')]
+#[Layout('layouts.etudiant')]
 class Parametres extends Component
 {
     // Section state

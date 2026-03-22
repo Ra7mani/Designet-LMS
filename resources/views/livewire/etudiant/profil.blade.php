@@ -10,6 +10,7 @@
 .ibtn:hover{background:var(--vxl);border-color:var(--vl);}
 .ibtn svg{width:16px;height:16px;stroke:var(--muted);}
 .ndot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:#EF4444;border:2px solid #fff;animation:pulse 2s infinite;}
+.ibtn.loading svg{animation:spin 1s linear infinite;}
 
 /* PAGE */
 .page{padding:0;}
@@ -153,7 +154,7 @@
 </style>
 
 <!-- HEADER -->
-<header class="hdr">
+<header class="hdr" wire:poll-30s="refreshProfile">
   <h1>{{ "\u{1F464}" }} Mon Profil</h1>
   <button class="edit-btn" wire:click="toggleEditMode">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -162,7 +163,6 @@
   @if($editMode)
     <span wire:loading class="ibtn" title="Sauvegarde en cours..."><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
   @endif
-  <div class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="ndot"></span></div>
 </header>
 
 <div class="page">
@@ -178,6 +178,8 @@
             <img src="{{ $avatarPreview }}?t={{ now()->timestamp }}" alt="{{ $user->name }}" style="width:110px;height:110px;border-radius:50%;object-fit:cover;display:block;box-shadow:0 8px 28px rgba(124,58,237,.3);">
           @elseif($avatarPreview)
             <img src="{{ $avatarPreview }}" alt="{{ $user->name }}" style="width:110px;height:110px;border-radius:50%;object-fit:cover;display:block;box-shadow:0 8px 28px rgba(124,58,237,.3);">
+          @elseif($user->avatar_path)
+            <img src="{{ asset('storage/' . $user->avatar_path) }}?t={{ now()->timestamp }}" alt="{{ $user->name }}" style="width:110px;height:110px;border-radius:50%;object-fit:cover;display:block;box-shadow:0 8px 28px rgba(124,58,237,.3);">
           @else
             <div class="prof-av">{{ auth()->user()->initials() }}</div>
           @endif
@@ -403,7 +405,7 @@
               <div class="ch-ico" style="background:{{ $color['bg'] }};">{{ $color['ico'] }}</div>
               <div class="ch-info">
                 <div class="ch-title">{{ $inscription->cours->title }}</div>
-                <div class="ch-sub">{{ $inscription->cours->categorie->name ?? 'Categorie' }} {{ "\u{00B7}" }} {{ $inscription->cours->formateur->name ?? 'Formateur' }} {{ "\u{00B7}" }} {{ $inscription->created_at->translatedFormat('d M Y') }}</div>
+                <div class="ch-sub">{{ $inscription->cours->categorie->name ?? 'Categorie' }} {{ "\u{00B7}" }} {{ $inscription->cours->formateur->name ?? 'Formateur' }} {{ "\u{00B7}" }} {{ $inscription->created_at?->translatedFormat('d M Y') ?? '—' }}</div>
                 <div class="ch-prog">
                   <div class="ch-prog-row">
                     <div class="ch-bar"><div class="ch-fill" style="--w:{{ $progress }}%;width:0;background:{{ $color['fill'] }};animation:barGrow 1.2s {{ 0.3 + ($index * 0.1) }}s both;"></div></div>
@@ -417,7 +419,7 @@
                 @else
                   <span class="ch-status" style="background:{{ $color['bg'] }};color:{{ $color['fill'] }};">{{ "\u{1F504}" }} En cours</span>
                 @endif
-                <div class="ch-time">{{ "\u{23F1}" }} Inscrit {{ $inscription->created_at->diffForHumans() }}</div>
+                <div class="ch-time">{{ "\u{23F1}" }} Inscrit {{ $inscription->created_at?->diffForHumans() ?? '—' }}</div>
               </div>
             </div>
           @empty
@@ -470,7 +472,15 @@
 
       <!-- CERTIFICATS -->
       <section class="fu fu4">
-        <div class="sec-hdr">{{ "\u{1F393}" }} Mes certificats <span class="sec-pill">{{ $certificats->count() }} obtenus</span></div>
+        <div class="sec-hdr">
+          {{ "\u{1F393}" }} Mes certificats
+          <span class="sec-pill">{{ $certificats->count() }} obtenus</span>
+          <button wire:click="refreshProfile" class="ibtn" style="margin-left: auto; width: 32px; height: 32px;" title="Rafraîchir">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+              <path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+          </button>
+        </div>
         <div class="certs-mini">
           @forelse($certificats as $certificat)
             <div class="cert-mini">
@@ -480,9 +490,17 @@
                 <div class="cert-mini-sub">Emis le {{ $certificat->issued_at->translatedFormat('d M Y') }} {{ "\u{00B7}" }} N° {{ $certificat->certificate_number }}</div>
               </div>
               @if($certificat->pdf_url)
-                <a href="{{ $certificat->pdf_url }}" target="_blank" class="cert-dl"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></a>
+                <a href="{{ route('etudiant.certificats.download', $certificat) }}" class="cert-dl">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                </a>
               @else
-                <div class="cert-dl" onclick="showToast('{{ "\u{1F4C4}" }} PDF non disponible')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+                <div class="cert-dl" onclick="showToast('{{ "\u{1F4C4}" }} PDF non disponible')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                </div>
               @endif
             </div>
           @empty
@@ -558,7 +576,7 @@
               <div class="af-item">
                 <div class="af-ico" style="background:{{ $activity['bg'] }};">{{ $activity['icon'] }}</div>
                 <div class="af-msg">{!! $activity['message'] !!}</div>
-                <div class="af-time">{{ $activity['date']->diffForHumans() }}</div>
+                <div class="af-time">{{ $activity['date']?->diffForHumans() ?? '—' }}</div>
               </div>
             @empty
               <div class="af-item">
@@ -589,6 +607,54 @@ Livewire.on('scroll-to-edit', () => {
   if (editSection) {
     editSection.scrollIntoView({behavior:'smooth', block:'start'});
   }
+});
+
+// Update avatar in sidebar when avatar is updated
+Livewire.on('avatar-updated', () => {
+  // Update avatar in sidebar dynamically
+  setTimeout(() => {
+    const sidebarAvatar = document.querySelector('.sidebar-footer .av-sm');
+    const profileNameEl = document.querySelector('.sidebar-footer .u-name');
+
+    if (sidebarAvatar && profileNameEl) {
+      // Reload just the sidebar user card
+      fetch(window.location.href)
+        .then(response => response.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const newDoc = parser.parseFromString(html, 'text/html');
+          const newSidebar = newDoc.querySelector('.sidebar-footer .user-card');
+
+          if (newSidebar) {
+            const currentSidebar = document.querySelector('.sidebar-footer .user-card');
+            if (currentSidebar) {
+              currentSidebar.innerHTML = newSidebar.innerHTML;
+            }
+          }
+        });
+    }
+  }, 600);
+});
+
+// Add refresh button animation
+document.addEventListener('DOMContentLoaded', () => {
+  const refreshBtn = document.querySelector('[wire\\:click="refreshProfile"]');
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => {
+      refreshBtn.classList.add('loading');
+      setTimeout(() => {
+        refreshBtn.classList.remove('loading');
+      }, 1000);
+    });
+  }
+
+  // Auto-refresh every 30 seconds (optional)
+  // setInterval(() => {
+  //   if (window.Livewire) {
+  //     Livewire.dispatch('refreshProfile');
+  //   }
+  // }, 30000);
 });
 </script>
 </div>

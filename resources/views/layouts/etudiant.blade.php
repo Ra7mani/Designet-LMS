@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+  <meta http-equiv="Pragma" content="no-cache"/>
+  <meta http-equiv="Expires" content="0"/>
   <title>DesignLMS — {{ $title ?? 'Espace Étudiant' }}</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ asset('etudiant/style.css') }}"/>
@@ -68,16 +71,24 @@
   <!-- User Card -->
   <div class="sidebar-footer">
     <a class="user-card" href="{{ route('etudiant.profil') }}">
-      <div class="av-sm" style="background:linear-gradient(135deg,#7C3AED,#A78BFA)">
-        {{ auth()->user()->initials() }}
-      </div>
+      @if(auth()->user()->avatar_path)
+        <img src="{{ asset('storage/' . auth()->user()->avatar_path) }}?t={{ now()->timestamp }}" alt="{{ auth()->user()->name }}" class="av-sm" style="width:44px;height:44px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+      @else
+        <div class="av-sm" style="background:linear-gradient(135deg,#7C3AED,#A78BFA)">
+          {{ auth()->user()->initials() }}
+        </div>
+      @endif
       <div>
         <div class="u-name">{{ auth()->user()->name }}</div>
         <div class="u-role">Étudiant</div>
-        
       </div>
     </a>
-    
+    <form method="POST" action="{{ route('logout') }}" class="logout-form">
+      @csrf
+      <button type="submit" class="logout-btn" title="Déconnexion">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke="currentColor"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </form>
   </div>
 </aside>
 

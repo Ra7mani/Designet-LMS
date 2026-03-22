@@ -3,9 +3,11 @@
 namespace App\Livewire\Etudiant;
 
 use App\Enums\EnrollStatus;
+use App\Models\Certificat;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\Attributes\Rule;
+use Livewire\Attributes\On;
 
 class Profil extends Component
 {
@@ -56,6 +58,12 @@ class Profil extends Component
     public $skillInput = '';
 
     public $selectedSkills = [];
+
+    #[On('refreshProfile')]
+    public function refreshProfile()
+    {
+        // Livewire will automatically refresh the render() method
+    }
 
     public function mount()
     {
@@ -193,11 +201,15 @@ class Profil extends Component
             $path = $this->avatar->store('avatars', 'public');
             $user->update(['avatar_path' => $path]);
 
+            // Force refresh user data in session
+            auth()->setUser($user->fresh());
+
             $this->avatarPreview = asset('storage/' . $path);
             $this->avatarUpdated = true;
             $this->avatar = null;
 
             $this->dispatch('notify', message: '📷 Photo de profil mise à jour');
+            $this->dispatch('avatar-updated');
         }
     }
 
@@ -238,12 +250,13 @@ class Profil extends Component
 
         $badges = $inscriptions->pluck('badge')->filter();
 
-        $certificats = $inscriptions
-            ->filter(fn($i) => $i->status === EnrollStatus::Completed && $i->certificat)
-            ->map(function($inscription) {
-                $inscription->certificat->setRelation('inscription', $inscription);
-                return $inscription->certificat;
-            });
+        // Charge tous les certificats liés à l'utilisateur, indépendamment du statut
+        $certificats = Certificat::whereHas('inscription', function($query) use ($user) {
+            $query->where('etudiant_id', $user->id);
+        })
+        ->with('inscription.cours')
+        ->latest()
+        ->get();
 
         $totalXp = $inscriptions->count() * 100
             + $inscriptions->where('status', EnrollStatus::Completed)->count() * 200;

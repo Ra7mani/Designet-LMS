@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Enums\RoleType;
+use App\Models\Certificat;
 use App\Models\Inscription;
+use App\Observers\CertificatObserver;
 use App\Observers\InscriptionObserver;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -25,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureFortify();
 
         Inscription::observe(InscriptionObserver::class);
+        Certificat::observe(CertificatObserver::class);
     }
 
     protected function configureDefaults(): void

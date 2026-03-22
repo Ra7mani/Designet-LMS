@@ -51,6 +51,21 @@
                 </flux:sidebar.item>
             </flux:sidebar.nav>
 
+            <flux:spacer />
+
+            <!-- Danger Zone: Logout -->
+            <flux:sidebar.nav>
+                <form method="POST" action="{{ route('logout') }}" style="width: 100%;">
+                    @csrf
+                    <button type="submit" class="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950 rounded-md transition-colors" title="Se déconnecter">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                        {{ __('Log out') }}
+                    </button>
+                </form>
+            </flux:sidebar.nav>
+
             <x-desktop-user-menu class="hidden lg:block" :name="auth()->user()->name" />
         </flux:sidebar>
 
@@ -59,18 +74,29 @@
             <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
             <flux:spacer />
             <flux:dropdown position="top" align="end">
-                <flux:profile
-                    :initials="auth()->user()->initials()"
-                    icon-trailing="chevron-down"
-                />
+                <div class="flex items-center gap-2">
+                    @if(auth()->user()->avatar_path)
+                        <img src="{{ asset('storage/' . auth()->user()->avatar_path) }}" alt="{{ auth()->user()->name }}" class="w-8 h-8 rounded-full object-cover">
+                    @else
+                        <flux:avatar
+                            :name="auth()->user()->name"
+                            :initials="auth()->user()->initials()"
+                        />
+                    @endif
+                    <svg class="w-4 h-4 ml-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                </div>
                 <flux:menu>
                     <flux:menu.radio.group>
                         <div class="p-0 text-sm font-normal">
                             <div class="flex items-center gap-2 px-1 py-1.5 text-start text-sm">
-                                <flux:avatar
-                                    :name="auth()->user()->name"
-                                    :initials="auth()->user()->initials()"
-                                />
+                                @if(auth()->user()->avatar_path)
+                                    <img src="{{ asset('storage/' . auth()->user()->avatar_path) }}" alt="{{ auth()->user()->name }}" class="w-10 h-10 rounded-full object-cover">
+                                @else
+                                    <flux:avatar
+                                        :name="auth()->user()->name"
+                                        :initials="auth()->user()->initials()"
+                                    />
+                                @endif
                                 <div class="grid flex-1 text-start text-sm leading-tight">
                                     <flux:heading class="truncate">{{ auth()->user()->name }}</flux:heading>
                                     <flux:text class="truncate">{{ auth()->user()->email }}</flux:text>
