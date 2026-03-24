@@ -155,7 +155,7 @@
       </button>
       @if(auth()->check())
         <button wire:click="$set('showFavorites', true)" wire:click="$set('categorie_id', '')" class="cat-pill {{ $showFavorites ? 'active' : '' }}">
-          {{ "\u{2764}\uFE0F" }} Favoris <span class="count">({{ $favorisCount }})</span>
+          {{ "\u{2764}" }} Favoris <span class="count">({{ $favorisCount }})</span>
         </button>
       @endif
       @foreach($categories as $cat)
