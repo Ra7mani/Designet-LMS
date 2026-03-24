@@ -54,7 +54,22 @@
 .page-header p{font-size:13px;color:#6b7280;margin:4px 0 0 0;}
 @media(max-width:1100px){.profil-layout{grid-template-columns:1fr;}.profil-left{position:static;display:grid;grid-template-columns:1fr 1fr;}}
 @media(max-width:640px){.profil-layout{grid-template-columns:1fr;}.profil-left{grid-template-columns:1fr;}.form-grid-2{grid-template-columns:1fr;}}
+.greeting-banner{background:linear-gradient(135deg, rgba(13,148,136,.1) 0%, rgba(20,184,166,.05) 100%);border:1.5px solid rgba(13,148,136,.2);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.greeting-content{flex:1;}
+.greeting-title{font-size:16px;font-weight:700;color:#1f2937;margin-bottom:4px;}
+.greeting-subtitle{font-size:12px;color:#6b7280;}
+.greeting-close{background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280;transition:all .2s;padding:0;width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
+.greeting-close:hover{color:#1f2937;}
+
 </style>
+
+<div class="greeting-banner" id="greetingBanner">
+  <div class="greeting-content">
+    <div class="greeting-title">Bonjour 👋 {{ explode(' ', auth()->user()->name)[0] }}</div>
+    <div class="greeting-subtitle">{{ now()->translatedFormat('d F Y') }} — Bonne journée !</div>
+  </div>
+  <button class="greeting-close" onclick="document.getElementById('greetingBanner').style.display='none'">✕</button>
+</div>
 
 <div class="page-header">
   <div>
