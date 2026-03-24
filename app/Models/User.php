@@ -81,6 +81,11 @@ class User extends Authenticatable
         return $this->hasMany(Message::class, 'receiver_id');
     }
 
+    public function favoris()
+    {
+        return $this->belongsToMany(Cours::class, 'favoris', 'user_id', 'cours_id')->withTimestamps();
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === RoleType::Admin;

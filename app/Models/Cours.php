@@ -50,4 +50,9 @@ class Cours extends Model
     {
         return $this->hasMany(Inscription::class);
     }
+
+    public function favoritedBy()
+    {
+        return $this->belongsToMany(User::class, 'favoris', 'cours_id', 'user_id')->withTimestamps();
+    }
 }

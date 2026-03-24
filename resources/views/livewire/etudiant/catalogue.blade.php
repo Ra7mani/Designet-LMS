@@ -150,11 +150,16 @@
   <!-- FILTERS -->
   <div class="filters-bar fu fu2">
     <div class="cat-pills">
-      <button wire:click="$set('categorie_id', '')" class="cat-pill {{ $categorie_id === '' ? 'active' : '' }}">
+      <button wire:click="$set('showFavorites', false)" wire:click="$set('categorie_id', '')" class="cat-pill {{ $categorie_id === '' && !$showFavorites ? 'active' : '' }}">
         {{ "\u{1F4CB}" }} Tous <span class="count">({{ $totalCours }})</span>
       </button>
+      @if(auth()->check())
+        <button wire:click="$set('showFavorites', true)" wire:click="$set('categorie_id', '')" class="cat-pill {{ $showFavorites ? 'active' : '' }}">
+          {{ "\u{2764}\uFE0F" }} Favoris <span class="count">({{ $favorisCount }})</span>
+        </button>
+      @endif
       @foreach($categories as $cat)
-        <button wire:click="$set('categorie_id', '{{ $cat->id }}')" class="cat-pill {{ $categorie_id == $cat->id ? 'active' : '' }}">
+        <button wire:click="$set('showFavorites', false)" wire:click="$set('categorie_id', '{{ $cat->id }}')" class="cat-pill {{ $categorie_id == $cat->id && !$showFavorites ? 'active' : '' }}">
           {{ $cat->name }} <span class="count">({{ $cat->cours_count }})</span>
         </button>
       @endforeach
@@ -236,8 +241,8 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
                 Voir le cours
               </a>
-              <div class="cta-icon" onclick="showToast('{{ "\u{1F516}" }} Cours mis en favori !')">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              <div class="cta-icon" wire:click="toggleFavorite({{ $c->id }})" style="{{ in_array($c->id, $userFavorites) ? 'background: var(--vxl); border-color: var(--vl);' : '' }}">
+                <svg viewBox="0 0 24 24" fill="{{ in_array($c->id, $userFavorites) ? '#7C3AED' : 'none' }}" stroke-width="2" stroke-linecap="round" style="stroke: {{ in_array($c->id, $userFavorites) ? '#7C3AED' : 'var(--muted)' }}"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
               </div>
             </div>
           </div>
