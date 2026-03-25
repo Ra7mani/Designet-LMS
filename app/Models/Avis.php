@@ -26,6 +26,11 @@ class Avis extends Model
         return $this->belongsTo(Inscription::class);
     }
 
+    public function user()
+    {
+        return $this->hasOneThrough(User::class, Inscription::class, 'id', 'id', 'inscription_id', 'etudiant_id');
+    }
+
     /**
      * Get the etudiant who wrote this review (through inscription)
      */

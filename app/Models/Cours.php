@@ -19,11 +19,19 @@ class Cours extends Model
         'level',
         'status',
         'thumbnail',
+        'rating',
+        'certificating',
+        'discussion_forum',
+        'promo_code',
+        'language',
     ];
 
     protected $casts = [
         'status' => CourseStatus::class,
         'price' => 'decimal:2',
+        'certificating' => 'boolean',
+        'discussion_forum' => 'boolean',
+        'rating' => 'decimal:2',
     ];
 
     public function categorie()
@@ -49,6 +57,11 @@ class Cours extends Model
     public function inscriptions()
     {
         return $this->hasMany(Inscription::class);
+    }
+
+    public function avis()
+    {
+        return $this->hasManyThrough(Avis::class, Inscription::class, 'cours_id', 'inscription_id');
     }
 
     public function favoritedBy()
