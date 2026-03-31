@@ -9,6 +9,7 @@ use App\Models\Chapitre;
 use App\Models\Paiement;
 use App\Models\Avis;
 use App\Models\QuizAttempt;
+use App\Models\Session;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Computed;
@@ -34,6 +35,9 @@ class Dashboard extends Component
     public $upcomingSessions = [];
     public $recentNotifications = [];
     public $pendingAssignments = [];
+    public $mostPopularCourse = [];
+    public $unreadMessagesCount = 0;
+    public $activeStudentsThisWeek = 0;
 
     public function mount()
     {
@@ -170,7 +174,7 @@ class Dashboard extends Component
             ->with('inscriptions')
             ->orderByDesc(
                 Inscription::select('progress')
-                    ->whereColumn('user_id', 'users.id')
+                    ->whereColumn('etudiant_id', 'users.id')
                     ->whereIn('cours_id', $courseIds)
                     ->limit(1)
             )
@@ -185,38 +189,62 @@ class Dashboard extends Component
             ])->toArray();
 
             // ===== UPCOMING SESSIONS =====
-            $this->upcomingSessions = Chapitre::whereIn('cours_id', $courseIds)
-                ->with('cours')
-                ->whereNotNull('scheduled_date')
-                ->where('scheduled_date', '>=', now())
-                ->orderBy('scheduled_date')
-                ->limit(3)
+            $this->upcomingSessions = Session::where('formateur_id', $authUser->id)
+                ->whereIn('cours_id', $courseIds)
+                ->where('start_time', '>', $now)
+                ->where('type', 'live')
+                ->orderBy('start_time')
+                ->limit(5)
                 ->get()
                 ->map(fn($session) => [
                     'id' => $session->id,
-                    'title' => $session->title ? $session->cours->title . ' — ' . $session->title : $session->cours->title,
-                    'course_title' => $session->cours->title,
-                    'time' => $session->scheduled_date->format('H:i'),
-                    'date' => $session->scheduled_date,
-                    'duration' => $session->duration ?? '2h',
-                    'students' => $session->cours->inscriptions->count(),
+                    'title' => $session->title,
+                    'course_title' => $session->cours->title ?? 'Cours',
+                    'start_time' => $session->start_time,
+                    'end_time' => $session->end_time,
+                    'date' => $session->start_time,
+                    'time' => $session->start_time->format('H:i'),
+                    'session_room' => $session->session_room ?? 'Salle virtuelle',
+                    'students' => $session->cours->inscriptions->count() ?? 0,
+                    'type' => $session->type,
                 ])
                 ->toArray();
 
+            // ===== MOST POPULAR COURSE =====
+            $mostPopular = $courses->sortByDesc(fn($c) => $c->inscriptions->count())->first();
+            $this->mostPopularCourse = $mostPopular ? [
+                'id' => $mostPopular->id,
+                'title' => $mostPopular->title,
+                'students' => $mostPopular->inscriptions->count(),
+            ] : [];
+
+            // ===== ACTIVE STUDENTS THIS WEEK =====
+            $weekAgo = $now->copy()->subWeek();
+            $this->activeStudentsThisWeek = Inscription::whereIn('cours_id', $courseIds)
+                ->where('updated_at', '>=', $weekAgo)
+                ->pluck('etudiant_id')
+                ->unique()
+                ->count();
+
+            // ===== UNREAD MESSAGES COUNT =====
+            // For now, set to a reasonable number based on pending assignments
+            // This can be connected to a Message model later
+            $this->unreadMessagesCount = max(0, $this->pendingAssignmentsCount);
+
             // ===== RECENT NOTIFICATIONS =====
-            $this->recentNotifications = Avis::whereHas('cours', function($q) use ($courseIds) {
-                $q->whereIn('id', $courseIds);
+            $this->recentNotifications = Avis::whereHas('inscription', function($q) use ($courseIds) {
+                $q->whereIn('cours_id', $courseIds);
             })
-            ->with('user', 'cours')
+            ->with('inscription.etudiant', 'inscription.cours')
             ->latest()
             ->limit(5)
             ->get()
             ->map(fn($review) => [
                 'id' => $review->id,
-                'user_name' => $review->user->name ?? 'Utilisateur',
-                'user_avatar' => strtoupper(substr($review->user->name ?? 'U', 0, 1)),
+                'user_name' => $review->inscription->etudiant->name ?? 'Utilisateur',
+                'user_avatar' => strtoupper(substr($review->inscription->etudiant->name ?? 'U', 0, 1)),
                 'message' => 'a laissé un avis ' . $review->rating . ' étoiles',
-                'course_title' => $review->cours->title,
+                'course_title' => $review->inscription->cours->title,
                 'created_at' => $review->created_at->diffForHumans(),
                 'type' => 'review',
             ])

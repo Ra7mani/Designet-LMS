@@ -192,7 +192,7 @@
           <div class="form-group">
             <label class="form-label">Prix</label>
             <div class="price-row">
-              <div class="price-currency">€</div>
+              <div class="price-currency">TND</div>
               <input class="form-input price-input" type="number" wire:model.live="price" step="0.01" min="0"/>
             </div>
           </div>
@@ -241,7 +241,7 @@
           <div style="display:flex;justify-content:space-between;"><span>Catégorie</span><strong style="color:var(--txt);">{{ $this->categoryName }}</strong></div>
           <div style="display:flex;justify-content:space-between;"><span>Niveau</span><strong style="color:var(--txt);">{{ ucfirst($level) ?: 'Non défini' }}</strong></div>
           <div style="display:flex;justify-content:space-between;"><span>Chapitres</span><strong style="color:var(--txt);">{{ count($chapters) }} / 22</strong></div>
-          <div style="display:flex;justify-content:space-between;"><span>Prix</span><strong style="color:var(--v);">{{ $price ?: '0' }}€</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span>Prix</span><strong style="color:var(--v);">{{ $price ?: '0' }} TND</strong></div>
           <div style="display:flex;justify-content:space-between;"><span>Certificat</span><strong style="color:var(--mintd);">{{ $certificateEnabled ? '✅ Oui' : '❌ Non' }}</strong></div>
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">

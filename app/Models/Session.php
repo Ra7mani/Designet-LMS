@@ -17,6 +17,8 @@ class Session extends Model
         'start_time',
         'end_time',
         'status',
+        'type',
+        'session_room',
         'cours_id',
         'formateur_id',
         'virtual_room_link',

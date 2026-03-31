@@ -68,7 +68,7 @@
             <div class="ccard-stats">
               <div class="ccard-stat">👨‍🎓 {{ $course->inscriptions->count() }} étudiants</div>
               <div class="ccard-stat">⭐ {{ number_format($course->rating ?? 0, 1) }}</div>
-              <div class="ccard-stat">💰 {{ number_format($course->inscriptions->count() * 100) }}€/mois</div>
+              <div class="ccard-stat">💰 {{ $course->price == 0 ? 'Gratuit' : number_format($course->price, 0).' TND' }}</div>
               <div class="ccard-stat">📊 {{ intval($course->inscriptions->avg('progress') ?? 0) }}% complétion</div>
             </div>
             <div style="margin-bottom:10px;"><div class="prog-bar"><div class="prog-fill prog-v" style="width:{{ intval($course->inscriptions->avg('progress') ?? 0) }}%;"></div></div></div>

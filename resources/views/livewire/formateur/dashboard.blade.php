@@ -70,16 +70,20 @@
   <div class="hero fu fu1">
     <div>
       <h2>Bienvenue sur votre espace formateur 🚀</h2>
-      <p>Vous avez <strong style="color:#fff;">{{ $this->totalStudents }} étudiants actifs</strong> cette semaine. Votre meilleur cours a {{ number_format($this->averageRating, 1) }}⭐.</p>
+      <p>Vous avez <strong style="color:#fff;">{{ $this->activeStudentsThisWeek }} étudiants actifs</strong> cette semaine{{ !empty($this->mostPopularCourse) ? '. Votre cours le plus populaire : <strong>'. $this->mostPopularCourse['title'] .'</strong>' : '' }}.</p>
       <div class="hero-badges">
-        <div class="hero-badge">🔴 Live à 10h00</div>
+        @if(!empty($this->upcomingSessions))
+          <div class="hero-badge">🔴 Live {{ $this->upcomingSessions[0]['time'] ?? '' }}</div>
+        @endif
         <div class="hero-badge">📝 {{ $this->pendingAssignmentsCount }} devoirs à corriger</div>
-        <div class="hero-badge">💬 5 messages non lus</div>
+        <div class="hero-badge">💬 {{ $this->unreadMessagesCount }} messages non lus</div>
         <div class="hero-badge">💰 Revenus : {{ number_format($this->monthlyRevenue) }}€ ce mois</div>
       </div>
       <div style="margin-top:18px;display:flex;gap:10px;">
-        <a href="#" class="btn btn-sm" style="background:#fff;color:var(--v);">▶️ Lancer le live</a>
-        <a href="#" class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);">Gérer mes cours</a>
+        @if(!empty($this->upcomingSessions))
+          <a href="{{ route('formateur.planning') }}" class="btn btn-sm" style="background:#fff;color:var(--v);">▶️ Lancer le live</a>
+        @endif
+        <a href="{{ route('formateur.mes-cours') }}" class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);">Gérer mes cours</a>
       </div>
     </div>
     <div class="hero-right">
@@ -95,8 +99,8 @@
   <!-- STATS -->
   <div class="grid-5 fu fu2 section-spacing">
     <div class="stat-card" style="border-top:3px solid var(--v)"><div class="s-ico">📚</div><div class="s-val">{{ $this->publicCoursesCount }}</div><div class="s-lbl">Cours publiés</div><div class="s-trend trend-up">↑ +{{ $this->courseTrend }} ce mois</div></div>
-    <div class="stat-card" style="border-top:3px solid var(--mintd)"><div class="s-ico">👨‍🎓</div><div class="s-val">{{ $this->totalStudents }}</div><div class="s-lbl">Étudiants actifs</div><div class="s-trend trend-up">↑ +{{ $this->studentTrend }} cette semaine</div></div>
-    <div class="stat-card" style="border-top:3px solid var(--yeld)"><div class="s-ico">💰</div><div class="s-val">{{ number_format($this->monthlyRevenue) }}€</div><div class="s-lbl">Revenus du mois</div><div class="s-trend trend-up">↑ +22% vs N-1</div></div>
+    <div class="stat-card" style="border-top:3px solid var(--mintd)"><div class="s-ico">👨‍🎓</div><div class="s-val">{{ $this->activeStudentsThisWeek }}</div><div class="s-lbl">Étudiants actifs</div><div class="s-trend trend-up">↑ +{{ $this->studentTrend }} cette semaine</div></div>
+    <div class="stat-card" style="border-top:3px solid var(--yeld)"><div class="s-ico">💰</div><div class="s-val">{{ number_format($this->monthlyRevenue) }}€</div><div class="s-lbl">Revenus du mois</div><div class="s-trend trend-up">↑ +{{ round($this->revenueTrend) }}€ vs N-1</div></div>
     <div class="stat-card" style="border-top:3px solid var(--skyd)"><div class="s-ico">⭐</div><div class="s-val">{{ number_format($this->averageRating, 1) }}</div><div class="s-lbl">Note moyenne</div><div class="s-trend trend-up">↑ {{ $this->ratingPercentile }}</div></div>
     <div class="stat-card" style="border-top:3px solid var(--rosed)"><div class="s-ico">📝</div><div class="s-val">{{ $this->pendingAssignmentsCount }}</div><div class="s-lbl">Devoirs à corriger</div><div class="s-trend trend-down">⚠️ En attente</div></div>
   </div>
@@ -106,10 +110,10 @@
   <div class="alert alert-warn fu fu2 section-spacing">
     <div class="alert-ico">🔴</div>
     <div class="alert-info">
-      <h4>Session live dans 45 minutes — {{ $this->nextSession['course_title'] }}</h4>
-      <p>{{ $this->nextSession['students'] }} étudiants inscrits · {{ $this->nextSession['title'] ?? 'Salle virtuelle' }} · {{ $this->nextSession['date']->format('d/m/Y') }} {{ $this->nextSession['time'] }} – {{ $this->nextSession['date']->copy()->addHours(2)->format('H:i') }}</p>
+      <h4>🔴 Session live — {{ $this->nextSession['course_title'] }}</h4>
+      <p>{{ $this->nextSession['students'] }} étudiants inscrits · {{ $this->nextSession['session_room'] }} · {{ $this->nextSession['date']->format('d/m/Y') }} à {{ $this->nextSession['time'] }}</p>
     </div>
-    <a href="{{ route('formateur.planning') }}" class="btn btn-warning btn-sm" style="background:var(--yeld);color:var(--yeld);">Préparer →</a>
+    <a href="{{ route('formateur.planning') }}" class="btn btn-sm" style="background:linear-gradient(135deg, #D97706 0%, #EA580C 100%);color:#fff;border:none;">Préparer →</a>
   </div>
   @endif
 
@@ -121,7 +125,7 @@
       <section class="fu fu3">
         <div class="sec-hdr">
           <span class="sec-title">📚 Mes cours actifs <span class="sec-pill">{{ count($this->coursesList) }}</span></span>
-          <a href="#" class="sec-link">Gérer →</a>
+          <a href="{{ route('formateur.mes-cours') }}" class="sec-link">Gérer →</a>
         </div>
         <div class="activity-grid">
           @forelse($this->coursesList as $course)
@@ -142,7 +146,7 @@
       <section class="fu fu5">
         <div class="sec-hdr">
           <span class="sec-title">📋 Devoirs à corriger <span class="sec-pill">{{ $this->pendingAssignmentsCount }}</span></span>
-          <a href="#" class="sec-link">Voir tous →</a>
+          <a href="{{ route('formateur.quiz') }}" class="sec-link">Voir tous →</a>
         </div>
         <div class="card" style="overflow:hidden;">
           <table class="data-table">

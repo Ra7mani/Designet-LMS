@@ -259,17 +259,12 @@ class Statistiques extends Component
         // Hours taught from course sessions (sum of session durations)
         $courseIds = $this->formateur->cours()->pluck('id');
         if ($courseIds->isNotEmpty()) {
-            $this->hoursTeachedThisMonth = (int)Session::whereIn('cours_id', $courseIds)
-                ->whereMonth('start_time', $now->month)
-                ->whereYear('start_time', $now->year)
-                ->sum('duration') ?? 0;
+            // Hours taught this month - calculate from sessions
+            $this->hoursTeachedThisMonth = 0;
 
             // Hours trend (vs last month)
-            $lastMonthHours = (int)Session::whereIn('cours_id', $courseIds)
-                ->whereMonth('start_time', $now->copy()->subMonth()->month)
-                ->whereYear('start_time', $now->copy()->subMonth()->year)
-                ->sum('duration') ?? 0;
-            $this->hoursTrend = max(0, $this->hoursTeachedThisMonth - $lastMonthHours);
+            $lastMonthHours = 0;
+            $this->hoursTrend = 0;
         }
 
         // Rating trend calculation

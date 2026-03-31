@@ -34,11 +34,11 @@ class CreerCours extends Component
     public $currency = 'EUR';
     public $formErrors = [];
 
-    public function mount($courseId = null)
+    public function mount($id = null)
     {
-        if ($courseId) {
-            $this->courseId = $courseId;
-            $this->loadCourse($courseId);
+        if ($id) {
+            $this->courseId = $id;
+            $this->loadCourse($id);
         }
     }
 
@@ -48,9 +48,11 @@ class CreerCours extends Component
         if ($course) {
             $this->title = $course->title;
             $this->category_id = $course->categorie_id;
-            $this->shortDescription = $course->description;
+            $this->language = $course->language ?? 'Français';
             $this->level = $course->level;
+            $this->shortDescription = $course->description;
             $this->price = $course->price;
+            $this->promoCode = $course->promo_code ?? '';
             $this->certificateEnabled = $course->certificating ?? false;
             $this->forumEnabled = $course->discussion_forum ?? true;
             $this->chapters = $course->chapitres->map(fn($c) => [
