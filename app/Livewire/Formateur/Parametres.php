@@ -2,9 +2,9 @@
 
 namespace App\Livewire\Formateur;
 
-use Livewire\Component;
-use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Hash;
+use Livewire\Attributes\Layout;
+use Livewire\Component;
 
 #[Layout('layouts.formateur')]
 class Parametres extends Component
@@ -13,29 +13,44 @@ class Parametres extends Component
 
     // Account
     public string $firstName = '';
+
     public string $lastName = '';
+
     public string $email = '';
+
     public string $phone = '';
+
     public string $bio = '';
+
     public string $language = 'fr';
 
     // Notifications
     public bool $email_notifications = true;
+
     public bool $course_reminders = true;
+
     public bool $student_messages = true;
 
     // Security
     public string $currentPassword = '';
+
     public string $newPassword = '';
+
     public string $newPassword_confirmation = '';
+
     public bool $showCurrentPassword = false;
+
     public bool $showNewPassword = false;
+
     public bool $showPasswordConfirmation = false;
+
     public string $passwordChangeError = '';
+
     public string $passwordChangeSuccess = '';
 
     // Modal
     public bool $showDeleteModal = false;
+
     public string $deleteConfirmationText = '';
 
     public function mount()
@@ -64,7 +79,7 @@ class Parametres extends Component
             $this->validate([
                 'firstName' => 'required|string|max:255',
                 'lastName' => 'required|string|max:255',
-                'email' => 'required|email|max:255|unique:users,email,' . auth()->id(),
+                'email' => 'required|email|max:255|unique:users,email,'.auth()->id(),
                 'phone' => 'nullable|string|max:20',
                 'bio' => 'nullable|string|max:2000',
                 'language' => 'required|in:fr,en,ar',
@@ -82,16 +97,39 @@ class Parametres extends Component
 
             $this->dispatch('notify', message: '✅ Informations mises à jour');
         } catch (\Exception $e) {
-            $this->dispatch('notify', message: '❌ Erreur: ' . $e->getMessage());
+            $this->dispatch('notify', message: '❌ Erreur: '.$e->getMessage());
         }
     }
 
-    public function updatedFirstName() { $this->updateAccountInfo(); }
-    public function updatedLastName() { $this->updateAccountInfo(); }
-    public function updatedEmail() { $this->updateAccountInfo(); }
-    public function updatedPhone() { $this->updateAccountInfo(); }
-    public function updatedBio() { $this->updateAccountInfo(); }
-    public function updatedLanguage() { $this->updateAccountInfo(); }
+    public function updatedFirstName()
+    {
+        $this->updateAccountInfo();
+    }
+
+    public function updatedLastName()
+    {
+        $this->updateAccountInfo();
+    }
+
+    public function updatedEmail()
+    {
+        $this->updateAccountInfo();
+    }
+
+    public function updatedPhone()
+    {
+        $this->updateAccountInfo();
+    }
+
+    public function updatedBio()
+    {
+        $this->updateAccountInfo();
+    }
+
+    public function updatedLanguage()
+    {
+        $this->updateAccountInfo();
+    }
 
     // ==================== NOTIFICATION SECTION ====================
 
@@ -107,13 +145,24 @@ class Parametres extends Component
             auth()->user()->updateNotificationPreferences($prefs);
             $this->dispatch('notify', message: '✅ Préférences mises à jour');
         } catch (\Exception $e) {
-            $this->dispatch('notify', message: '❌ Erreur: ' . $e->getMessage());
+            $this->dispatch('notify', message: '❌ Erreur: '.$e->getMessage());
         }
     }
 
-    public function updatedEmailNotifications() { $this->saveNotificationPreferences(); }
-    public function updatedCourseReminders() { $this->saveNotificationPreferences(); }
-    public function updatedStudentMessages() { $this->saveNotificationPreferences(); }
+    public function updatedEmailNotifications()
+    {
+        $this->saveNotificationPreferences();
+    }
+
+    public function updatedCourseReminders()
+    {
+        $this->saveNotificationPreferences();
+    }
+
+    public function updatedStudentMessages()
+    {
+        $this->saveNotificationPreferences();
+    }
 
     // ==================== SECURITY SECTION ====================
 
@@ -130,8 +179,9 @@ class Parametres extends Component
 
             $user = auth()->user();
 
-            if (!Hash::check($this->currentPassword, $user->password)) {
+            if (! Hash::check($this->currentPassword, $user->password)) {
                 $this->passwordChangeError = 'Le mot de passe actuel est incorrect';
+
                 return;
             }
 
@@ -143,13 +193,24 @@ class Parametres extends Component
 
             $this->passwordChangeSuccess = '✅ Mot de passe changé avec succès';
         } catch (\Exception $e) {
-            $this->passwordChangeError = 'Erreur: ' . $e->getMessage();
+            $this->passwordChangeError = 'Erreur: '.$e->getMessage();
         }
     }
 
-    public function toggleCurrentPassword() { $this->showCurrentPassword = !$this->showCurrentPassword; }
-    public function toggleNewPassword() { $this->showNewPassword = !$this->showNewPassword; }
-    public function togglePasswordConfirmation() { $this->showPasswordConfirmation = !$this->showPasswordConfirmation; }
+    public function toggleCurrentPassword()
+    {
+        $this->showCurrentPassword = ! $this->showCurrentPassword;
+    }
+
+    public function toggleNewPassword()
+    {
+        $this->showNewPassword = ! $this->showNewPassword;
+    }
+
+    public function togglePasswordConfirmation()
+    {
+        $this->showPasswordConfirmation = ! $this->showPasswordConfirmation;
+    }
 
     // ==================== ACCOUNT DELETION ====================
 
@@ -164,6 +225,7 @@ class Parametres extends Component
         try {
             if ($this->deleteConfirmationText !== auth()->user()->email) {
                 $this->dispatch('notify', message: '❌ Email de confirmation incorrect');
+
                 return;
             }
 

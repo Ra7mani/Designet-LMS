@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ForumMessage extends Model
 {
     protected $fillable = ['channel_id', 'user_id', 'content', 'is_read'];
+
     protected $casts = ['is_read' => 'boolean'];
 
     public function channel(): BelongsTo
@@ -37,6 +38,7 @@ class ForumMessage extends Model
         if ($emoji) {
             $query->where('emoji', $emoji);
         }
+
         return $query->count();
     }
 
@@ -48,4 +50,3 @@ class ForumMessage extends Model
             ->first();
     }
 }
-

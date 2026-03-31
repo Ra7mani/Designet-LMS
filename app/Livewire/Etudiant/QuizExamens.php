@@ -2,28 +2,36 @@
 
 namespace App\Livewire\Etudiant;
 
+use App\Models\Inscription;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
-use App\Models\Inscription;
-use Livewire\Component;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
+use Livewire\Component;
 
 class QuizExamens extends Component
 {
     // View state
     public string $tab = 'tous';
+
     public ?int $activeQuizId = null;
+
     public bool $showQuiz = false;
+
     public bool $showResult = false;
 
     // Quiz state
     public ?Quiz $currentQuiz = null;
+
     public ?QuizAttempt $currentAttempt = null;
+
     public array $questions = [];
+
     public int $currentQuestionIndex = 0;
+
     public array $userAnswers = [];
+
     public int $timeRemaining = 0;
+
     public bool $quizStarted = false;
 
     // Result state
@@ -62,8 +70,9 @@ class QuizExamens extends Component
             ->where('cours_id', $quiz->cours_id)
             ->first();
 
-        if (!$inscription) {
+        if (! $inscription) {
             session()->flash('error', 'Vous devez etre inscrit au cours pour passer ce quiz.');
+
             return;
         }
 
@@ -75,6 +84,7 @@ class QuizExamens extends Component
 
         if ($attemptsCount >= $quiz->max_attempts) {
             session()->flash('error', 'Vous avez atteint le nombre maximum de tentatives pour ce quiz.');
+
             return;
         }
 
@@ -86,6 +96,7 @@ class QuizExamens extends Component
 
         if ($existingAttempt) {
             $this->resumeQuiz($existingAttempt);
+
             return;
         }
 
@@ -124,6 +135,7 @@ class QuizExamens extends Component
 
         if ($this->timeRemaining <= 0) {
             $this->submitQuiz();
+
             return;
         }
 
@@ -134,7 +146,7 @@ class QuizExamens extends Component
 
     public function selectAnswer(int $answerId)
     {
-        if (!$this->quizStarted || !$this->currentQuiz) {
+        if (! $this->quizStarted || ! $this->currentQuiz) {
             return;
         }
 
@@ -181,7 +193,7 @@ class QuizExamens extends Component
 
     public function submitQuiz()
     {
-        if (!$this->currentAttempt || !$this->currentQuiz) {
+        if (! $this->currentAttempt || ! $this->currentQuiz) {
             return;
         }
 
@@ -288,14 +300,15 @@ class QuizExamens extends Component
         $quiz = Quiz::with('cours')->find($quizId);
         $user = auth()->user();
 
-        if (!$quiz || !$user->email) {
+        if (! $quiz || ! $user->email) {
             session()->flash('error', 'Impossible d\'envoyer le rappel.');
+
             return;
         }
 
         // In production, you would use Laravel Mail
         // For now, we'll just show a success message
-        session()->flash('success', 'Rappel envoye a ' . $user->email . ' pour "' . $quiz->title . '"');
+        session()->flash('success', 'Rappel envoye a '.$user->email.' pour "'.$quiz->title.'"');
     }
 
     public function render()
@@ -326,21 +339,21 @@ class QuizExamens extends Component
         $stats = [
             'total_passed' => $allAttempts->count(),
             'total_succeeded' => $allAttempts->where('passed', true)->count(),
-            'avg_score' => $allAttempts->count() > 0 ? round($allAttempts->avg(fn($a) => ($a->score / max(1, $a->total_points)) * 100)) : 0,
-            'upcoming' => $allQuizzes->filter(fn($q) => $q->isExam())->count(),
+            'avg_score' => $allAttempts->count() > 0 ? round($allAttempts->avg(fn ($a) => ($a->score / max(1, $a->total_points)) * 100)) : 0,
+            'upcoming' => $allQuizzes->filter(fn ($q) => $q->isExam())->count(),
             'total_xp' => $allAttempts->sum('xp_earned'),
         ];
 
         // Filter quizzes by tab
         $quizzes = match ($this->tab) {
-            'quiz' => $allQuizzes->filter(fn($q) => !$q->isExam()),
-            'examens' => $allQuizzes->filter(fn($q) => $q->isExam()),
+            'quiz' => $allQuizzes->filter(fn ($q) => ! $q->isExam()),
+            'examens' => $allQuizzes->filter(fn ($q) => $q->isExam()),
             'historique' => collect(), // History shows in table
             default => $allQuizzes,
         };
 
         // Get next exam
-        $nextExam = $allQuizzes->filter(fn($q) => $q->isExam())->first();
+        $nextExam = $allQuizzes->filter(fn ($q) => $q->isExam())->first();
 
         // Get history
         $history = QuizAttempt::where('user_id', $userId)

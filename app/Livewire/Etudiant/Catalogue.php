@@ -14,9 +14,13 @@ class Catalogue extends Component
     use WithPagination;
 
     public string $search = '';
+
     public string $categorie_id = '';
+
     public string $level = '';
+
     public bool $showFavorites = false;
+
     public array $userFavorites = [];
 
     public function mount(): void
@@ -56,8 +60,9 @@ class Catalogue extends Component
 
     public function toggleFavorite(int $coursId): void
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             session()->flash('error', 'Veuillez vous connecter pour ajouter des favoris.');
+
             return;
         }
 
@@ -67,7 +72,7 @@ class Catalogue extends Component
 
         if ($favorite) {
             $favorite->delete();
-            $this->userFavorites = array_filter($this->userFavorites, fn($id) => $id !== $coursId);
+            $this->userFavorites = array_filter($this->userFavorites, fn ($id) => $id !== $coursId);
             session()->flash('success', 'Cours supprimé de vos favoris.');
         } else {
             Favoris::create([
@@ -85,18 +90,14 @@ class Catalogue extends Component
     {
         $query = Cours::query()
             ->where('status', CourseStatus::Published)
-            ->when($this->search, fn($q) =>
-                $q->where('title', 'like', '%'.$this->search.'%')
-                  ->orWhere('description', 'like', '%'.$this->search.'%')
+            ->when($this->search, fn ($q) => $q->where('title', 'like', '%'.$this->search.'%')
+                ->orWhere('description', 'like', '%'.$this->search.'%')
             )
-            ->when($this->showFavorites, fn($q) =>
-                $q->whereIn('id', $this->userFavorites ?: [0])
+            ->when($this->showFavorites, fn ($q) => $q->whereIn('id', $this->userFavorites ?: [0])
             )
-            ->when($this->categorie_id && !$this->showFavorites, fn($q) =>
-                $q->where('categorie_id', $this->categorie_id)
+            ->when($this->categorie_id && ! $this->showFavorites, fn ($q) => $q->where('categorie_id', $this->categorie_id)
             )
-            ->when($this->level, fn($q) =>
-                $q->where('level', $this->level)
+            ->when($this->level, fn ($q) => $q->where('level', $this->level)
             );
 
         $cours = $query
@@ -118,4 +119,3 @@ class Catalogue extends Component
         ])->layout('layouts.etudiant');
     }
 }
-

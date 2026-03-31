@@ -46,7 +46,7 @@ window.performSearch = function(query) {
 };
 
 function displaySearchResults(data, container) {
-  if (!data || (data.students?.length === 0 && data.courses?.length === 0)) {
+  if (!data || (data.students?.length === 0 && data.courses?.length === 0 && data.messages?.length === 0)) {
     container.innerHTML = '<div class="search-result-item">Aucun résultat trouvé</div>';
     container.style.display = 'block';
     return;
@@ -79,6 +79,22 @@ function displaySearchResults(data, container) {
           <div class="search-result-info">
             <div class="search-result-name">${course.title}</div>
             <div class="search-result-type">${course.students_count || 0} étudiant(s)</div>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  // Messages results
+  if (data.messages && data.messages.length > 0) {
+    data.messages.forEach(message => {
+      const initials = message.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      html += `
+        <div class="search-result-item" onclick="window.location.href='${message.url}'">
+          <div class="search-result-avatar">${initials}</div>
+          <div class="search-result-info">
+            <div class="search-result-name">${message.name}</div>
+            <div class="search-result-type">Message ${message.type === 'forum' ? 'forum' : 'privé'} · ${message.content}</div>
           </div>
         </div>
       `;

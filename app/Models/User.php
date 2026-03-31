@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\RoleType;
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -13,7 +12,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, TwoFactorAuthenticatable, SoftDeletes;
+    use HasFactory, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
 
     protected $fillable = [
         'name',
@@ -50,13 +49,13 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at'      => 'datetime',
-            'password'               => 'hashed',
-            'two_factor_confirmed_at'=> 'datetime',
-            'role'                   => RoleType::class,
-            'skills_json'            => 'array',
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'two_factor_confirmed_at' => 'datetime',
+            'role' => RoleType::class,
+            'skills_json' => 'array',
             'notification_settings_json' => 'array',
-            'dark_mode'              => 'boolean',
+            'dark_mode' => 'boolean',
             'subscription_expires_at' => 'datetime',
         ];
     }
@@ -113,8 +112,9 @@ class User extends Authenticatable
     public function avatarUrl(): string
     {
         if ($this->avatar_path) {
-            return asset('storage/' . $this->avatar_path);
+            return asset('storage/'.$this->avatar_path);
         }
+
         return '';
     }
 
@@ -126,7 +126,7 @@ class User extends Authenticatable
     public function addSkill(string $skill): void
     {
         $skills = $this->getSkills();
-        if (!in_array($skill, $skills) && count($skills) < 12) {
+        if (! in_array($skill, $skills) && count($skills) < 12) {
             $skills[] = $skill;
             $this->update(['skills_json' => $skills]);
         }
@@ -135,34 +135,35 @@ class User extends Authenticatable
     public function removeSkill(string $skill): void
     {
         $skills = $this->getSkills();
-        $skills = array_filter($skills, fn($s) => $s !== $skill);
+        $skills = array_filter($skills, fn ($s) => $s !== $skill);
         $this->update(['skills_json' => array_values($skills)]);
     }
 
     public function hasCompletedProfile(): bool
     {
-        return !empty($this->bio)
-            || !empty($this->location)
-            || !empty($this->professional_objective)
-            || !empty($this->linkedin_url)
-            || !empty($this->github_url)
-            || !empty($this->portfolio_url)
-            || !empty($this->avatar_path);
+        return ! empty($this->bio)
+            || ! empty($this->location)
+            || ! empty($this->professional_objective)
+            || ! empty($this->linkedin_url)
+            || ! empty($this->github_url)
+            || ! empty($this->portfolio_url)
+            || ! empty($this->avatar_path);
     }
 
     public function profileCompleteness(): int
     {
         $fields = [
-            'name' => !empty($this->name),
-            'email' => !empty($this->email),
-            'bio' => !empty($this->bio),
-            'phone' => !empty($this->phone),
-            'location' => !empty($this->location),
-            'professional_objective' => !empty($this->professional_objective),
-            'avatar' => !empty($this->avatar_path),
-            'socials' => !empty($this->linkedin_url) || !empty($this->github_url) || !empty($this->portfolio_url),
+            'name' => ! empty($this->name),
+            'email' => ! empty($this->email),
+            'bio' => ! empty($this->bio),
+            'phone' => ! empty($this->phone),
+            'location' => ! empty($this->location),
+            'professional_objective' => ! empty($this->professional_objective),
+            'avatar' => ! empty($this->avatar_path),
+            'socials' => ! empty($this->linkedin_url) || ! empty($this->github_url) || ! empty($this->portfolio_url),
         ];
-        return (int)((array_sum($fields) / count($fields)) * 100);
+
+        return (int) ((array_sum($fields) / count($fields)) * 100);
     }
 
     public function getNotificationPreferences(): array
@@ -178,7 +179,7 @@ class User extends Authenticatable
     public function updateNotificationPreferences(array $prefs): void
     {
         $allowedKeys = ['email_notifications', 'course_reminders', 'announcements', 'forum_messages'];
-        $filtered = array_filter($prefs, fn($k) => in_array($k, $allowedKeys), ARRAY_FILTER_USE_KEY);
+        $filtered = array_filter($prefs, fn ($k) => in_array($k, $allowedKeys), ARRAY_FILTER_USE_KEY);
         $this->update(['notification_settings_json' => $filtered]);
     }
 
@@ -197,6 +198,7 @@ class User extends Authenticatable
             'currency' => $this->currency,
             'language' => $this->language,
         ];
+
         return $preferences[$key] ?? null;
     }
 

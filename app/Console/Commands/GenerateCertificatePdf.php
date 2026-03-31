@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 class GenerateCertificatePdf extends Command
 {
     protected $signature = 'certificat:generate-pdf {id}';
+
     protected $description = 'Generate PDF for a certificat';
 
     public function handle()
@@ -17,8 +18,9 @@ class GenerateCertificatePdf extends Command
         $certificatId = $this->argument('id');
         $certificat = Certificat::find($certificatId);
 
-        if (!$certificat) {
+        if (! $certificat) {
             $this->error("Certificat not found: {$certificatId}");
+
             return 1;
         }
 
@@ -35,16 +37,16 @@ class GenerateCertificatePdf extends Command
             'issuedDate' => $issuedDate,
         ]);
 
-        $path = 'certificates/certificate-' . $certificat->id . '.pdf';
+        $path = 'certificates/certificate-'.$certificat->id.'.pdf';
         Storage::disk('public')->put($path, $pdf->output());
 
         $certificat->update([
-            'pdf_url' => '/storage/' . $path,
+            'pdf_url' => '/storage/'.$path,
         ]);
 
-        $this->info("✅ PDF generated successfully!");
+        $this->info('✅ PDF generated successfully!');
         $this->line("Path: {$path}");
-        $this->line("Size: " . Storage::disk('public')->size($path) . " bytes");
+        $this->line('Size: '.Storage::disk('public')->size($path).' bytes');
 
         return 0;
     }

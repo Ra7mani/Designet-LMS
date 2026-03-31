@@ -4,17 +4,20 @@ namespace App\Livewire\Etudiant;
 
 use App\Models\Event;
 use App\Models\Inscription;
-use Livewire\Component;
+use Carbon\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
-use Carbon\Carbon;
+use Livewire\Component;
 
 #[Layout('layouts.etudiant')]
 class Planning extends Component
 {
     public int $currentMonth;
+
     public int $currentYear;
+
     public ?int $selectedEventId = null;
+
     public string $viewMode = 'month'; // month, week, list
 
     public function mount()
@@ -41,7 +44,7 @@ class Planning extends Component
         return Event::whereIn('cours_id', $courseIds)
             ->whereBetween('start_date', [
                 now()->startOfDay(),
-                now()->endOfDay()
+                now()->endOfDay(),
             ])
             ->orderBy('start_date')
             ->get();
@@ -58,7 +61,7 @@ class Planning extends Component
             ->whereBetween('start_date', [$weekStart, $weekEnd])
             ->where(function ($query) {
                 $query->where('start_date', '<', now()->startOfDay())
-                      ->orWhere('start_date', '>', now()->endOfDay());
+                    ->orWhere('start_date', '>', now()->endOfDay());
             })
             ->orderBy('start_date')
             ->get();
@@ -103,7 +106,7 @@ class Planning extends Component
             $date = Carbon::create($this->currentYear, $this->currentMonth, $day);
 
             // Get events for this day
-            $dayEvents = $monthEvents->filter(fn($e) => $e->start_date->toDateString() === $date->toDateString());
+            $dayEvents = $monthEvents->filter(fn ($e) => $e->start_date->toDateString() === $date->toDateString());
             $eventTypes = $dayEvents->pluck('event_type')->unique()->toArray();
 
             // Determine primary event type (priority: exam > session > course)
@@ -182,7 +185,7 @@ class Planning extends Component
     #[Computed]
     public function selectedEvent()
     {
-        if (!$this->selectedEventId) {
+        if (! $this->selectedEventId) {
             return null;
         }
 
@@ -264,7 +267,7 @@ class Planning extends Component
                 ->where('start_date', '>=', now()->startOfMonth())
                 ->where('start_date', '<=', now()->endOfMonth())
                 ->get()
-                ->sum(fn($e) => $e->start_date->diffInHours($e->end_date))
+                ->sum(fn ($e) => $e->start_date->diffInHours($e->end_date)),
         ];
     }
 
@@ -273,4 +276,3 @@ class Planning extends Component
         return view('livewire.etudiant.planning');
     }
 }
-

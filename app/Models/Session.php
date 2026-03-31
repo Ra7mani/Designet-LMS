@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Livewire\Attributes\Computed;
 
 class Session extends Model
 {
@@ -45,10 +46,9 @@ class Session extends Model
         return $this->hasMany(Event::class);
     }
 
-    #[\Livewire\Attributes\Computed]
+    #[Computed]
     public function isLiveNow()
     {
         return $this->start_time <= now() && $this->end_time >= now();
     }
 }
-

@@ -59,28 +59,35 @@
 .btn-sm{padding:6px 12px;font-size:11px;}
 .fu{animation:fadeUp .5s cubic-bezier(.22,1,.36,1) both;}
 .fu1{animation-delay:.04s}.fu2{animation-delay:.10s}.fu3{animation-delay:.17s}
-.fu4{animation-delay:.24s}.fu5{animation-delay:.32s}
+.fu4{animation-delay:.24s}.fu5{animation-delay:.32s}.fu6{animation-delay:.38s}
 @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:1100px){.two-col{grid-template-columns:1fr;}.right-col{display:grid;grid-template-columns:1fr 1fr;}}
 @media(max-width:640px){.activity-grid{grid-template-columns:1fr;}.right-col{grid-template-columns:1fr;}.hero{grid-template-columns:1fr;}.hero-right{display:none;}}
 .section-spacing{margin-top:32px;}
+.progress-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.17);font-size:11px;font-weight:700;color:#fff;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.prog-bar{height:8px;background:var(--bg);border-radius:999px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:999px;}
+.prog-v{background:var(--vgrad);}
+@media(max-width:900px){.grid-3{grid-template-columns:1fr;}}
 </style>
 
   <!-- HERO -->
   <div class="hero fu fu1">
     <div>
       <h2>Bienvenue sur votre espace formateur 🚀</h2>
-      <p>Vous avez <strong style="color:#fff;">{{ $this->activeStudentsThisWeek }} étudiants actifs</strong> cette semaine{{ !empty($this->mostPopularCourse) ? '. Votre cours le plus populaire : <strong>'. $this->mostPopularCourse['title'] .'</strong>' : '' }}.</p>
+      <p>Spécialité: <strong style="color:#fff;">{{ auth()->user()->bio ?: 'Formateur Design' }}</strong>. Vous avez <strong style="color:#fff;">{{ $this->activeStudentsThisWeek }} étudiants actifs</strong> cette semaine{{ !empty($this->mostPopularCourse) ? '. Votre cours le plus populaire : <strong>'. $this->mostPopularCourse['title'] .'</strong>' : '' }}.</p>
       <div class="hero-badges">
-        @if(!empty($this->upcomingSessions))
-          <div class="hero-badge">🔴 Live {{ $this->upcomingSessions[0]['time'] ?? '' }}</div>
+        @if(!empty($this->todaysSessions) || !empty($this->upcomingSessions))
+          <div class="hero-badge">🔴 Live {{ !empty($this->todaysSessions) ? ($this->todaysSessions[0]['time'] ?? '') : ($this->upcomingSessions[0]['time'] ?? '') }}</div>
         @endif
         <div class="hero-badge">📝 {{ $this->pendingAssignmentsCount }} devoirs à corriger</div>
         <div class="hero-badge">💬 {{ $this->unreadMessagesCount }} messages non lus</div>
         <div class="hero-badge">💰 Revenus : {{ number_format($this->monthlyRevenue) }}€ ce mois</div>
+        <div class="progress-chip">📈 Progression globale: {{ number_format($this->globalStudentProgress, 1) }}%</div>
       </div>
       <div style="margin-top:18px;display:flex;gap:10px;">
-        @if(!empty($this->upcomingSessions))
+        @if(!empty($this->todaysSessions) || !empty($this->upcomingSessions))
           <a href="{{ route('formateur.planning') }}" class="btn btn-sm" style="background:#fff;color:var(--v);">▶️ Lancer le live</a>
         @endif
         <a href="{{ route('formateur.mes-cours') }}" class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);">Gérer mes cours</a>
@@ -99,22 +106,57 @@
   <!-- STATS -->
   <div class="grid-5 fu fu2 section-spacing">
     <div class="stat-card" style="border-top:3px solid var(--v)"><div class="s-ico">📚</div><div class="s-val">{{ $this->publicCoursesCount }}</div><div class="s-lbl">Cours publiés</div><div class="s-trend trend-up">↑ +{{ $this->courseTrend }} ce mois</div></div>
-    <div class="stat-card" style="border-top:3px solid var(--mintd)"><div class="s-ico">👨‍🎓</div><div class="s-val">{{ $this->activeStudentsThisWeek }}</div><div class="s-lbl">Étudiants actifs</div><div class="s-trend trend-up">↑ +{{ $this->studentTrend }} cette semaine</div></div>
-    <div class="stat-card" style="border-top:3px solid var(--yeld)"><div class="s-ico">💰</div><div class="s-val">{{ number_format($this->monthlyRevenue) }}€</div><div class="s-lbl">Revenus du mois</div><div class="s-trend trend-up">↑ +{{ round($this->revenueTrend) }}€ vs N-1</div></div>
+    <div class="stat-card" style="border-top:3px solid var(--mintd)"><div class="s-ico">👨‍🎓</div><div class="s-val">{{ $this->totalStudents }}</div><div class="s-lbl">Étudiants inscrits</div><div class="s-trend {{ $this->studentTrend >= 0 ? 'trend-up' : 'trend-down' }}">{{ $this->studentTrend >= 0 ? '↑' : '↓' }} {{ $this->studentTrend >= 0 ? '+' : '' }}{{ $this->studentTrend }} ce mois</div></div>
+    <div class="stat-card" style="border-top:3px solid var(--yeld)"><div class="s-ico">💰</div><div class="s-val">{{ number_format($this->monthlyRevenue) }}€</div><div class="s-lbl">Revenus du mois</div><div class="s-trend {{ $this->revenueTrend >= 0 ? 'trend-up' : 'trend-down' }}">{{ $this->revenueTrend >= 0 ? '↑' : '↓' }} {{ $this->revenueTrend >= 0 ? '+' : '' }}{{ number_format($this->revenueTrendPercent, 1) }}% vs N-1</div></div>
     <div class="stat-card" style="border-top:3px solid var(--skyd)"><div class="s-ico">⭐</div><div class="s-val">{{ number_format($this->averageRating, 1) }}</div><div class="s-lbl">Note moyenne</div><div class="s-trend trend-up">↑ {{ $this->ratingPercentile }}</div></div>
-    <div class="stat-card" style="border-top:3px solid var(--rosed)"><div class="s-ico">📝</div><div class="s-val">{{ $this->pendingAssignmentsCount }}</div><div class="s-lbl">Devoirs à corriger</div><div class="s-trend trend-down">⚠️ En attente</div></div>
+    <div class="stat-card" style="border-top:3px solid var(--rosed)"><div class="s-ico">📈</div><div class="s-val">{{ number_format($this->globalStudentProgress, 1) }}%</div><div class="s-lbl">Progression globale</div><div class="s-trend trend-up">Moyenne des inscrits</div></div>
   </div>
 
   <!-- ALERT -->
-  @if($this->nextSession)
+  @if($this->liveSessionInThirtyMinutes)
   <div class="alert alert-warn fu fu2 section-spacing">
-    <div class="alert-ico">🔴</div>
+    <div class="alert-ico">🚨</div>
     <div class="alert-info">
-      <h4>🔴 Session live — {{ $this->nextSession['course_title'] }}</h4>
-      <p>{{ $this->nextSession['students'] }} étudiants inscrits · {{ $this->nextSession['session_room'] }} · {{ $this->nextSession['date']->format('d/m/Y') }} à {{ $this->nextSession['time'] }}</p>
+      <h4>Session live imminente — {{ $this->liveSessionInThirtyMinutes['course_title'] }}</h4>
+      <p>{{ $this->liveSessionInThirtyMinutes['students'] }} étudiants inscrits · {{ $this->liveSessionInThirtyMinutes['session_room'] }} · Début dans {{ $this->liveSessionInThirtyMinutes['minutes_left'] }} min ({{ $this->liveSessionInThirtyMinutes['time'] }})</p>
     </div>
-    <a href="{{ route('formateur.planning') }}" class="btn btn-sm" style="background:linear-gradient(135deg, #D97706 0%, #EA580C 100%);color:#fff;border:none;">Préparer →</a>
+    <a href="{{ route('formateur.planning') }}" class="btn btn-sm" style="background:linear-gradient(135deg, #D97706 0%, #EA580C 100%);color:#fff;border:none;">Démarrer →</a>
   </div>
+  @endif
+
+  @if(!empty($this->todaysSessions) || !empty($this->upcomingSessions))
+  <section class="fu fu3 section-spacing">
+    <div class="sec-hdr">
+      <span class="sec-title">🗓️ Planning live</span>
+      <a href="{{ route('formateur.planning') }}" class="sec-link">Voir planning →</a>
+    </div>
+    <div class="card card-p">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:10px;">Aujourd'hui</div>
+          @forelse($this->todaysSessions as $session)
+            <div style="padding:10px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;">
+              <div style="font-size:13px;font-weight:600;">{{ $session['title'] }}</div>
+              <div style="font-size:11px;color:var(--muted);">{{ $session['course_title'] }} · {{ $session['time'] }}</div>
+            </div>
+          @empty
+            <div style="font-size:12px;color:var(--muted);">Aucune session aujourd'hui</div>
+          @endforelse
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:10px;">Prochains lives</div>
+          @forelse($this->upcomingSessions as $session)
+            <div style="padding:10px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;">
+              <div style="font-size:13px;font-weight:600;">{{ $session['title'] }}</div>
+              <div style="font-size:11px;color:var(--muted);">{{ $session['course_title'] }} · {{ $session['date']->format('d/m') }} {{ $session['time'] }}</div>
+            </div>
+          @empty
+            <div style="font-size:12px;color:var(--muted);">Aucun prochain live</div>
+          @endforelse
+        </div>
+      </div>
+    </div>
+  </section>
   @endif
 
   <!-- MAIN LAYOUT -->
@@ -166,6 +208,36 @@
         </div>
       </section>
 
+      <!-- TOP ÉTUDIANTS -->
+      <section class="fu fu6">
+        <div class="sec-hdr">
+          <span class="sec-title">🏆 Top étudiants du mois <span class="sec-pill">{{ count($this->topStudents) }}</span></span>
+          <a href="{{ route('formateur.etudiants') }}" class="sec-link">Voir tous →</a>
+        </div>
+        <div class="grid-3">
+          @forelse($this->topStudents as $student)
+            <div class="card card-p">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                <div style="width:44px;height:44px;border-radius:50%;background:var(--vgrad);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;">{{ $student['avatar'] }}</div>
+                <div>
+                  <div style="font-weight:600;font-size:13px;">{{ $student['name'] }}</div>
+                  <div style="font-size:11px;color:var(--muted);">{{ $student['lessons'] }} leçons complétées</div>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;">
+                <span>Progression</span>
+                <span style="font-weight:700;">{{ $student['progress'] }}%</span>
+              </div>
+              <div class="prog-bar">
+                <div class="prog-fill prog-v" style="width:{{ $student['progress'] }}%;"></div>
+              </div>
+            </div>
+          @empty
+            <div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--muted);">Aucun top étudiant pour ce mois</div>
+          @endforelse
+        </div>
+      </section>
+
     </div>
 
     <!-- RIGHT COL -->
@@ -175,7 +247,7 @@
       <div class="revenue-card fu fu2">
         <h3>💰 Revenus ce mois</h3>
         <div class="revenue-val">{{ number_format($this->monthlyRevenue) }} €</div>
-        <div class="revenue-trend">↑ +{{ number_format($this->revenueTrend) }}€ vs mois précédent · <strong style="color:#fff;">{{ number_format($this->totalRevenue) }}€</strong> total</div>
+        <div class="revenue-trend">{{ $this->revenueTrend >= 0 ? '↑' : '↓' }} {{ $this->revenueTrend >= 0 ? '+' : '' }}{{ number_format($this->revenueTrendPercent, 1) }}% vs mois précédent · <strong style="color:#fff;">{{ number_format($this->totalRevenue) }}€</strong> total</div>
         <div style="margin-top:16px;">
           <div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.7);margin-bottom:6px;"><span>Objectif mensuel</span><span>{{ number_format($this->monthlyRevenue) }} / 3000€</span></div>
           <div style="height:8px;background:rgba(255,255,255,.15);border-radius:var(--rp);overflow:hidden;">
@@ -191,7 +263,13 @@
         <div style="display:flex;flex-direction:column;gap:10px;padding:16px 20px;">
           @forelse($this->recentNotifications as $notif)
             <div style="display:flex;gap:10px;padding:10px;background:var(--bg);border-radius:var(--rm);">
-              <div style="font-size:16px;">{{ $notif['type'] === 'review' ? '⭐' : '📚' }}</div>
+              <div style="font-size:16px;">
+                @if($notif['type'] === 'review') ⭐
+                @elseif($notif['type'] === 'assignment') 📝
+                @elseif($notif['type'] === 'question') ❓
+                @else 💬
+                @endif
+              </div>
               <div style="flex:1;">
                 <div style="font-size:12px;font-weight:600;color:var(--txt);">{{ $notif['user_name'] }} {{ $notif['message'] }}</div>
                 <div style="font-size:11px;color:var(--muted);">{{ $notif['course_title'] }} · {{ $notif['created_at'] }}</div>

@@ -15,13 +15,15 @@ class Lecon extends Model
         'title',
         'content',
         'video_url',
+        'resource_path',
+        'resource_name',
         'duration',
         'order',
         'type',
     ];
 
     protected $casts = [
-        //'type' => LessonType::class,
+        // 'type' => LessonType::class,
     ];
 
     public function chapitre()

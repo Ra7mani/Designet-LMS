@@ -2,8 +2,8 @@
 
 namespace App\Livewire\Formateur;
 
-use Livewire\Component;
 use Livewire\Attributes\Layout;
+use Livewire\Component;
 use Livewire\WithFileUploads;
 
 #[Layout('layouts.formateur')]
@@ -12,18 +12,31 @@ class Profil extends Component
     use WithFileUploads;
 
     public $editMode = false;
+
     public $firstName = '';
+
     public $lastName = '';
+
     public $email = '';
+
     public $phone = '';
+
     public $city = '';
+
     public $country = '';
+
     public $portfolioUrl = '';
+
     public $biography = '';
+
     public $skills = [];
+
     public $skillInput = '';
+
     public $linkedinUrl = '';
+
     public $behanceUrl = '';
+
     public $dribbbleUrl = '';
 
     public function mount()
@@ -45,7 +58,7 @@ class Profil extends Component
 
     public function toggleEditMode()
     {
-        $this->editMode = !$this->editMode;
+        $this->editMode = ! $this->editMode;
     }
 
     public function saveProfile()

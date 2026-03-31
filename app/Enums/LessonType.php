@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-enum LessonType : string
+enum LessonType: string
 {
     case Video = 'video';
     case Document = 'document';

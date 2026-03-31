@@ -1,8 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -11,7 +10,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        \Illuminate\Support\Facades\DB::table('course_sessions')
+        DB::table('course_sessions')
             ->where('virtual_room_link', 'like', '%jitsi%')
             ->delete();
 
@@ -22,9 +21,9 @@ return new class extends Migration
             'https://meet.google.com/efg-hijk-lmn',
         ];
 
-        $sessions = \Illuminate\Support\Facades\DB::table('course_sessions')->get();
+        $sessions = DB::table('course_sessions')->get();
         foreach ($sessions as $index => $session) {
-            \Illuminate\Support\Facades\DB::table('course_sessions')
+            DB::table('course_sessions')
                 ->where('id', $session->id)
                 ->update(['virtual_room_link' => $googleMeetLinks[$index % count($googleMeetLinks)]]);
         }

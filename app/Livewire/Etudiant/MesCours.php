@@ -3,14 +3,17 @@
 namespace App\Livewire\Etudiant;
 
 use App\Models\Inscription;
-use Livewire\Component;
 use Carbon\Carbon;
+use Livewire\Component;
 
 class MesCours extends Component
 {
     public string $search = '';
+
     public string $tab = 'tous';
+
     public string $sortBy = 'recent';
+
     public string $view = 'grid';
 
     protected $queryString = [
@@ -51,7 +54,7 @@ class MesCours extends Component
 
         // Apply search filter
         $inscriptions = $allInscriptions;
-        if (!empty($this->search)) {
+        if (! empty($this->search)) {
             $searchTerm = strtolower($this->search);
             $inscriptions = $inscriptions->filter(function ($inscription) use ($searchTerm) {
                 return str_contains(strtolower($inscription->cours->title), $searchTerm)
@@ -95,7 +98,7 @@ class MesCours extends Component
         $termines = $inscriptions->where('status', 'completed')->count();
 
         // Calculate total chapters
-        $totalChapitres = $inscriptions->sum(fn($i) => $i->cours->chapitres?->count() ?? 0);
+        $totalChapitres = $inscriptions->sum(fn ($i) => $i->cours->chapitres?->count() ?? 0);
 
         // Calculate total hours from lesson durations
         $totalMinutes = 0;
@@ -154,7 +157,7 @@ class MesCours extends Component
         return match ($this->sortBy) {
             'recent' => $inscriptions->sortByDesc('updated_at'),
             'progress' => $inscriptions->sortByDesc('progress'),
-            'name' => $inscriptions->sortBy(fn($i) => $i->cours->title),
+            'name' => $inscriptions->sortBy(fn ($i) => $i->cours->title),
             'enrolled' => $inscriptions->sortByDesc('enrolled_at'),
             default => $inscriptions,
         };

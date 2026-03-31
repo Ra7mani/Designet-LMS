@@ -37,10 +37,10 @@
 
   <!-- STATS -->
   <div class="grid-4 fu fu1" style="margin-bottom:32px;">
-    <div class="stat-card" style="border-top:3px solid var(--v)"><div class="s-ico">📚</div><div class="s-val">{{ $this->stats['published'] }}</div><div class="s-lbl">Cours publiés</div><div class="s-trend trend-up">↑ {{ $this->stats['draft'] }} brouillons</div></div>
+    <div class="stat-card" style="border-top:3px solid var(--v)"><div class="s-ico">📚</div><div class="s-val">{{ $this->stats['published'] }}</div><div class="s-lbl">Cours publiés</div><div class="s-trend trend-up">↑ {{ $this->stats['draft'] }} brouillons · {{ $this->stats['archived'] }} archivés</div></div>
     <div class="stat-card" style="border-top:3px solid var(--mintd)"><div class="s-ico">👨‍🎓</div><div class="s-val">{{ $this->stats['totalStudents'] }}</div><div class="s-lbl">Étudiants total</div><div class="s-trend trend-up">↑ Tous vos cours</div></div>
     <div class="stat-card" style="border-top:3px solid var(--yeld)"><div class="s-ico">⭐</div><div class="s-val">{{ number_format($this->stats['averageRating'], 1) }}</div><div class="s-lbl">Note moyenne</div><div class="s-trend trend-up">↑ {{ $this->stats['averageRating'] >= 4.5 ? 'Excellent' : 'Bon' }}</div></div>
-    <div class="stat-card" style="border-top:3px solid var(--rosed)"><div class="s-ico">📝</div><div class="s-val">{{ $this->stats['pendingAssignments'] }}</div><div class="s-lbl">Devoirs créés</div><div class="s-trend trend-up">📋 Dans vos cours</div></div>
+    <div class="stat-card" style="border-top:3px solid var(--rosed)"><div class="s-ico">💰</div><div class="s-val">{{ number_format($this->stats['totalRevenue']) }}€</div><div class="s-lbl">Revenu total</div><div class="s-trend trend-up">📈 Complétion moy. {{ number_format($this->stats['averageCompletion'], 1) }}%</div></div>
   </div>
 
   <!-- FILTERS & SEARCH -->
@@ -49,33 +49,55 @@
       <button class="tab-item{{ $this->filterStatus === 'tous' ? ' active' : '' }}" wire:click="$set('filterStatus', 'tous')">Tous</button>
       <button class="tab-item{{ $this->filterStatus === 'published' ? ' active' : '' }}" wire:click="$set('filterStatus', 'published')">Publiés</button>
       <button class="tab-item{{ $this->filterStatus === 'draft' ? ' active' : '' }}" wire:click="$set('filterStatus', 'draft')">Brouillons</button>
+      <button class="tab-item{{ $this->filterStatus === 'archived' ? ' active' : '' }}" wire:click="$set('filterStatus', 'archived')">Archivés</button>
     </div>
-    <div class="search-bar" style="min-width:200px;"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input wire:model.live="searchQuery" placeholder="Filtrer…" style="border:none;background:transparent;color:var(--txt);outline:none;width:100%;"/></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <div class="search-bar" style="min-width:200px;"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input wire:model.live="searchQuery" placeholder="Rechercher titre ou description…" style="border:none;background:transparent;color:var(--txt);outline:none;width:100%;"/></div>
+      <select wire:model.live="sortBy" class="btn btn-outline btn-sm" style="height:36px;">
+        <option value="recent">Plus récents</option>
+        <option value="rating">Meilleure note</option>
+        <option value="students">Plus d'étudiants</option>
+        <option value="title">Titre A→Z</option>
+      </select>
+      <button class="btn btn-sm {{ $this->viewMode === 'grid' ? 'btn-primary' : 'btn-outline' }}" wire:click="setViewMode('grid')">Grille</button>
+      <button class="btn btn-sm {{ $this->viewMode === 'list' ? 'btn-primary' : 'btn-outline' }}" wire:click="setViewMode('list')">Liste</button>
+    </div>
   </div>
 
   <!-- COURSES GRID -->
   <section style="margin-bottom:40px;">
-    <div class="course-grid">
+    <div class="{{ $this->viewMode === 'grid' ? 'course-grid' : '' }}" style="{{ $this->viewMode === 'list' ? 'display:flex;flex-direction:column;gap:12px;' : '' }}">
       @forelse($this->filteredCourses as $course)
-        <div class="ccard" wire:click="selectCourse({{ $course->id }})">
-          <div class="ccard-top" style="background:{{ $course->status === 'published' ? 'var(--vxl)' : '#F3F4F6' }};">
+        <div class="ccard" wire:click="selectCourse({{ $course->id }})" style="{{ $this->viewMode === 'list' ? 'display:grid;grid-template-columns:1fr auto;align-items:center;' : '' }}">
+          <div class="ccard-top" style="background:{{ $course->status_value === 'published' ? 'var(--vxl)' : '#F3F4F6' }};">
             <span class="ccard-emoji">💡</span>
-            <span class="ccard-tag" style="background:{{ $course->status === 'published' ? 'var(--vxl);color:var(--v)' : '#E5E7EB;color:#6B7280' }};">{{ $course->status === 'published' ? '✅ Publié' : '🚧 Brouillon' }}</span>
+            <span class="ccard-tag" style="background:{{ $course->status_value === 'published' ? 'var(--vxl);color:var(--v)' : ($course->status_value === 'archived' ? '#FEE2E2;color:#991B1B' : '#E5E7EB;color:#6B7280') }};">
+              {{ $course->status_value === 'published' ? '✅ Publié' : ($course->status_value === 'archived' ? '📦 Archivé' : '🚧 Brouillon') }}
+            </span>
             <div class="ccard-title">{{ $course->title }}</div>
             <div class="ccard-sub">{{ $course->category ?? 'Design' }} · {{ $course->level ?? 'Tous niveaux' }} · {{ $course->chapitres->count() }} leçons</div>
           </div>
           <div class="ccard-bot">
             <div class="ccard-stats">
-              <div class="ccard-stat">👨‍🎓 {{ $course->inscriptions->count() }} étudiants</div>
+              <div class="ccard-stat">👨‍🎓 {{ $course->students_count_value }} étudiants</div>
               <div class="ccard-stat">⭐ {{ number_format($course->rating ?? 0, 1) }}</div>
-              <div class="ccard-stat">💰 {{ $course->price == 0 ? 'Gratuit' : number_format($course->price, 0).' TND' }}</div>
-              <div class="ccard-stat">📊 {{ intval($course->inscriptions->avg('progress') ?? 0) }}% complétion</div>
+              <div class="ccard-stat">💰 {{ number_format($course->revenue_total_value) }}€</div>
+              <div class="ccard-stat">📊 {{ $course->completion_avg_value }}% complétion</div>
             </div>
-            <div style="margin-bottom:10px;"><div class="prog-bar"><div class="prog-fill prog-v" style="width:{{ intval($course->inscriptions->avg('progress') ?? 0) }}%;"></div></div></div>
+            <div style="margin-bottom:10px;"><div class="prog-bar"><div class="prog-fill prog-v" style="width:{{ $course->completion_avg_value }}%;"></div></div></div>
             <div class="ccard-actions">
               <a href="{{ route('formateur.editer-cours', $course->id) }}" class="btn btn-primary btn-sm" style="flex:1;justify-content:center;">✏️ Modifier</a>
-              <button class="btn btn-outline btn-sm">Stats</button>
-              <button class="btn btn-ghost btn-sm">Voir</button>
+              <button class="btn btn-outline btn-sm" wire:click.stop="duplicateCourse({{ $course->id }})" onclick="return confirm('Dupliquer ce cours en brouillon ?')">📄 Dupliquer</button>
+              @if($course->status_value === 'published')
+                <button class="btn btn-ghost btn-sm" wire:click.stop="depublishCourse({{ $course->id }})" onclick="return confirm('Dépublier ce cours ?')">⏸ Dépublier</button>
+              @elseif($course->status_value === 'archived')
+                <button class="btn btn-ghost btn-sm" wire:click.stop="publishCourse({{ $course->id }})" onclick="return confirm('Republier ce cours ?')">▶️ Republier</button>
+              @else
+                <button class="btn btn-ghost btn-sm" wire:click.stop="publishCourse({{ $course->id }})" onclick="return confirm('Publier ce cours ?')">🚀 Publier</button>
+              @endif
+              @if($course->status_value !== 'archived')
+                <button class="btn btn-ghost btn-sm" wire:click.stop="archiveCourse({{ $course->id }})" onclick="return confirm('Archiver ce cours ?')">📦 Archiver</button>
+              @endif
             </div>
           </div>
         </div>
@@ -108,9 +130,10 @@
               <div class="chapter-num" style="background:{{ $index < 3 ? 'var(--mintd)' : 'var(--v)' }};color:#fff;">{{ $index + 1 }}</div>
               <div class="chapter-info">
                 <div class="chapter-title">{{ $chapter->title }}</div>
-                <div class="chapter-meta">{{ $chapter->lecons->count() ?? 0 }} leçons · {{ intval($chapter->lecons->count() * 12) }} min · Complété par {{ $this->chapterCompletionPercentages[$chapter->id] ?? 60 }}%</div>
+                <div class="chapter-meta">{{ $chapter->lecons->count() ?? 0 }} leçons · {{ intval($chapter->lecons->count() * 12) }} min · Complété par {{ $this->chapterProgressions[$chapter->id]['progress'] ?? ($this->chapterCompletionPercentages[$chapter->id] ?? 60) }}%</div>
               </div>
               <div class="chapter-actions">
+                <span class="btn btn-sm btn-outline" style="pointer-events:none;">{{ $this->chapterProgressions[$chapter->id]['status'] ?? 'brouillon' }}</span>
                 <a href="{{ route('formateur.editer-cours', $this->courseDetails->id) }}" class="btn btn-sm btn-ghost">Éditer</a>
               </div>
             </div>
@@ -139,16 +162,23 @@
             </div>
             <div>
               <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;">
-                <span style="color:var(--muted);">Taux satisfaction</span>
-                <span style="font-weight:700;color:var(--yeld);">{{ number_format($this->courseDetails->rating ?? 0, 0) }}%</span>
+                <span style="color:var(--muted);">Revenu du cours</span>
+                <span style="font-weight:700;color:var(--v);">{{ number_format($this->courseDetails->inscriptions->sum(function($i){ $p=$i->paiement; if(!$p){ return 0; } $status=$p->status->value ?? $p->status; return $status === 'completed' ? (float) $p->amount : 0; })) }}€</span>
               </div>
-              <div class="prog-bar"><div class="prog-fill" style="width:{{ number_format($this->courseDetails->rating ?? 0, 0) }}%;background:var(--yeld);"></div></div>
+              <div class="prog-bar"><div class="prog-fill prog-v" style="width:{{ min(($this->courseDetails->inscriptions->sum(function($i){ $p=$i->paiement; if(!$p){return 0;} $status=$p->status->value ?? $p->status; return $status==='completed' ? (float)$p->amount : 0; }) / 5000) * 100, 100) }}%;"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;">
+                <span style="color:var(--muted);">Taux satisfaction</span>
+                <span style="font-weight:700;color:var(--yeld);">{{ number_format((($this->courseDetails->rating ?? 0) / 5) * 100, 0) }}%</span>
+              </div>
+              <div class="prog-bar"><div class="prog-fill" style="width:{{ number_format((($this->courseDetails->rating ?? 0) / 5) * 100, 0) }}%;background:var(--yeld);"></div></div>
             </div>
           </div>
 
           <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);">
-            <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px;">AVIS RÉCENTS</div>
-            @forelse($this->courseDetails->avis->take(2) as $review)
+            <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px;">AVIS & COMMENTAIRES</div>
+            @forelse($this->courseDetails->avis->take(5) as $review)
               <div style="font-size:13px;color:var(--txt);margin-bottom:8px;padding:10px;background:var(--bg);border-radius:var(--rs);">{{ str_repeat('⭐', intval($review->rating)) }} <em>"{{ $review->comment }}"</em> — {{ $review->user->name ?? 'Anonyme' }}</div>
             @empty
               <div style="font-size:12px;color:var(--muted);padding:10px;">Aucun avis pour le moment</div>

@@ -2,34 +2,45 @@
 
 namespace App\Livewire\Formateur;
 
-use Livewire\Component;
-use Livewire\Attributes\Layout;
-use Livewire\Attributes\Computed;
-use App\Models\Cours;
-use App\Models\User;
-use App\Models\Inscription;
 use App\Models\Avis;
+use App\Models\Cours;
+use App\Models\Inscription;
 use App\Models\Paiement;
 use App\Models\Session;
 use Carbon\Carbon;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
+use Livewire\Component;
 
 #[Layout('layouts.formateur')]
 class Statistiques extends Component
 {
     public $period = 'mois';
+
     public $totalRevenue = 0;
+
     public $monthlyRevenue = 0;
+
     public $quarterlyRevenue = 0;
+
     public $newStudents = 0;
+
     public $newStudentsPercent = 0;
+
     public $averageRating = 0;
+
     public $ratingTrend = 0;
+
     public $avgCompletion = 0;
+
     public $completionTrend = 0;
+
     public $hoursTeachedThisMonth = 0;
+
     public $hoursTrend = 0;
 
     protected $formateur;
+
     protected $courses;
 
     public function mount()
@@ -51,8 +62,9 @@ class Statistiques extends Component
                 ->whereMonth('paid_at', $date->month)
                 ->whereYear('paid_at', $date->year)
                 ->sum('amount');
-            $months[] = (int)$revenue;
+            $months[] = (int) $revenue;
         }
+
         return $months;
     }
 
@@ -92,7 +104,9 @@ class Statistiques extends Component
 
         foreach ($courses as $index => $course) {
             $count = $course->inscriptions()->count();
-            if ($count === 0) continue;
+            if ($count === 0) {
+                continue;
+            }
 
             $avgRating = Avis::whereHas('inscription', function ($q) use ($course) {
                 $q->where('cours_id', $course->id);
@@ -113,8 +127,8 @@ class Statistiques extends Component
                 'name' => $course->title,
                 'students' => $count,
                 'rating' => round($avgRating, 1),
-                'monthlyRevenue' => (int)$monthlyRev,
-                'completion' => (int)$avgCompletion,
+                'monthlyRevenue' => (int) $monthlyRev,
+                'completion' => (int) $avgCompletion,
                 'color' => $colors[$index % 4] ?? 'var(--v)',
             ];
         }
@@ -145,15 +159,17 @@ class Statistiques extends Component
         $result = [];
         foreach ($reviews as $index => $review) {
             $etudiant = $review->inscription?->etudiant;
-            if (!$etudiant) continue;
+            if (! $etudiant) {
+                continue;
+            }
 
-            $initials = strtoupper(substr($etudiant->first_name, 0, 1) . substr($etudiant->last_name, 0, 1));
+            $initials = strtoupper(substr($etudiant->first_name, 0, 1).substr($etudiant->last_name, 0, 1));
 
             $result[] = [
                 'initials' => $initials,
-                'name' => $etudiant->first_name . ' ' . substr($etudiant->last_name, 0, 1) . '.',
+                'name' => $etudiant->first_name.' '.substr($etudiant->last_name, 0, 1).'.',
                 'rating' => $review->rating,
-                'text' => '"' . $review->comment . '"',
+                'text' => '"'.$review->comment.'"',
                 'gradient' => $gradients[$index % 4] ?? $gradients[0],
             ];
         }
@@ -194,7 +210,7 @@ class Statistiques extends Component
     {
         $this->period = $period;
         $this->loadStatistics();
-        session()->flash('message', '📊 Données : ' . $period);
+        session()->flash('message', '📊 Données : '.$period);
     }
 
     private function loadStatistics()
@@ -205,19 +221,19 @@ class Statistiques extends Component
             $q->where('formateur_id', $this->formateur->id);
         })->where('status', 'completed')->get();
 
-        $this->totalRevenue = (int)$allPayments->sum('amount');
+        $this->totalRevenue = (int) $allPayments->sum('amount');
 
         $monthlyPayments = $allPayments->filter(function ($p) use ($now) {
             return $p->paid_at->month === $now->month && $p->paid_at->year === $now->year;
         });
-        $this->monthlyRevenue = (int)$monthlyPayments->sum('amount');
+        $this->monthlyRevenue = (int) $monthlyPayments->sum('amount');
 
         $startOfQuarter = $now->copy()->startOfQuarter();
         $endOfQuarter = $now->copy()->endOfQuarter();
         $quarterlyPayments = $allPayments->filter(function ($p) use ($startOfQuarter, $endOfQuarter) {
             return $p->paid_at->between($startOfQuarter, $endOfQuarter);
         });
-        $this->quarterlyRevenue = (int)$quarterlyPayments->sum('amount');
+        $this->quarterlyRevenue = (int) $quarterlyPayments->sum('amount');
 
         // New students this month
         $this->newStudents = Inscription::whereHas('cours', function ($q) {
@@ -245,12 +261,12 @@ class Statistiques extends Component
         $this->ratingTrend = 0.2;
 
         // Average completion
-        $this->avgCompletion = (int)Inscription::whereHas('cours', function ($q) {
+        $this->avgCompletion = (int) Inscription::whereHas('cours', function ($q) {
             $q->where('formateur_id', $this->formateur->id);
         })->avg('progress') ?? 0;
 
         // Completion trend (vs last month)
-        $lastMonthCompletion = (int)Inscription::whereHas('cours', function ($q) {
+        $lastMonthCompletion = (int) Inscription::whereHas('cours', function ($q) {
             $q->where('formateur_id', $this->formateur->id);
         })->whereBetween('updated_at', [$now->copy()->subMonth()->startOfMonth(), $now->copy()->subMonth()->endOfMonth()])
             ->avg('progress') ?? 0;
@@ -284,4 +300,3 @@ class Statistiques extends Component
         return view('livewire.formateur.statistiques');
     }
 }
-

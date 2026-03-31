@@ -70,6 +70,7 @@ class GamificationService
 
         $scores = $students->map(function (User $student) {
             $metrics = $this->calculateXpData($student);
+
             return [
                 'user' => $student,
                 'xp' => $metrics['total_xp'],
@@ -81,6 +82,7 @@ class GamificationService
 
         return $scores->take($limit)->map(function (array $entry, int $index) {
             $entry['rank'] = $index + 1;
+
             return $entry;
         });
     }
@@ -102,6 +104,7 @@ class GamificationService
             ->reject(fn (array $def) => in_array($def['name'], $earnedNames, true))
             ->map(function (array $def) use ($metrics) {
                 $progress = $this->computeBadgeProgress($def['slug'], $metrics);
+
                 return [
                     'slug' => $def['slug'],
                     'name' => $def['name'],
@@ -135,7 +138,7 @@ class GamificationService
                 || $inscription->status === EnrollStatus::Completed
                 || $inscription->status === 'completed';
 
-            if (!$isCompleted || $inscription->certificat) {
+            if (! $isCompleted || $inscription->certificat) {
                 continue;
             }
 
@@ -164,7 +167,7 @@ class GamificationService
 
             $certificat->load(['inscription.cours', 'inscription.etudiant']);
 
-            if (!empty($user->email)) {
+            if (! empty($user->email)) {
                 Mail::to($user->email)->send(new CertificateIssuedMail($certificat));
             }
 
@@ -197,7 +200,7 @@ class GamificationService
             }
 
             $inscriptionId = $this->resolveBadgeInscriptionId($metrics['inscriptions']);
-            if (!$inscriptionId) {
+            if (! $inscriptionId) {
                 continue;
             }
 
@@ -256,6 +259,7 @@ class GamificationService
             ];
         })->sortByDesc('xp')->values()->map(function (array $entry, int $index) {
             $entry['rank'] = $index + 1;
+
             return $entry;
         });
 
@@ -289,6 +293,7 @@ class GamificationService
         $totalLessons = $inscriptions->sum(fn (Inscription $i) => $i->cours->chapitres->flatMap->lecons->count());
         $lessonsCompleted = $inscriptions->sum(function (Inscription $inscription) {
             $lessons = $inscription->cours->chapitres->flatMap->lecons->count();
+
             return (int) round($lessons * ((float) $inscription->progress / 100));
         });
 

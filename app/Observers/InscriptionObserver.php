@@ -14,7 +14,7 @@ class InscriptionObserver
             || $inscription->status === EnrollStatus::Completed
             || $inscription->status === 'completed';
 
-        if (!$isEligible || !$inscription->etudiant) {
+        if (! $isEligible || ! $inscription->etudiant) {
             return;
         }
 

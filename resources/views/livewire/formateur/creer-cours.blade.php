@@ -34,6 +34,8 @@
     .level-btn.selected{background:var(--vgrad);color:#fff;border-color:transparent;}
     .form-error{color:#dc2626;font-size:12px;margin-top:4px;display:block;font-weight:500;}
     .is-invalid{border-color:#dc2626 !important;}
+    .wysiwyg{min-height:180px;padding:14px;font-family:DM Sans,sans-serif;font-size:14px;border:none;outline:none;width:100%;resize:vertical;background:#fff;}
+    .lesson-box{padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff;margin-top:8px;}
   </style>
 
   <!-- WIZARD STEPS -->
@@ -111,29 +113,28 @@
             <label class="form-label">Description complète</label>
             <div class="card" style="overflow:hidden;">
               <div class="editor-toolbar">
-                <button class="editor-btn" type="button">
-                  <strong>B</strong>
-                </button>
-                <button class="editor-btn" type="button">
-                  <em>I</em>
-                </button>
-                <button class="editor-btn" type="button">
-                  <u>U</u>
-                </button>
-                <button class="editor-btn" type="button">≡</button>
-                <button class="editor-btn" type="button">🔗</button>
-                <button class="editor-btn" type="button">🖼</button>
+                <button class="editor-btn" type="button" onclick="document.execCommand('bold');"><strong>B</strong></button>
+                <button class="editor-btn" type="button" onclick="document.execCommand('italic');"><em>I</em></button>
+                <button class="editor-btn" type="button" onclick="document.execCommand('underline');"><u>U</u></button>
+                <button class="editor-btn" type="button" onclick="document.execCommand('insertUnorderedList');">• Liste</button>
+                <button class="editor-btn" type="button" onclick="document.execCommand('createLink', false, prompt('URL:')); ">🔗</button>
               </div>
-              <textarea class="editor-area" wire:model.live="description" placeholder="Décrivez votre cours en détail…"></textarea>
+              <div id="courseDescriptionEditor" class="wysiwyg" contenteditable="true" oninput="window.Livewire.find('{{ $this->getId() }}').set('description', this.innerHTML)">{!! $description !!}</div>
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">Image de couverture</label>
-            <div class="upload-zone" onclick="document.querySelector('input[type=file]').click()">
+            <div class="upload-zone" onclick="document.getElementById('coverUploader').click()">
               <div class="upload-zone-ico">🖼️</div>
               <p>Glissez une image ici ou cliquez pour sélectionner<br/><small>PNG, JPG — 1280×720px recommandé</small></p>
             </div>
-            <input type="file" style="display:none;" wire:model.live="coverImage" accept="image/*"/>
+            <input id="coverUploader" type="file" style="display:none;" wire:model.live="coverImage" accept="image/*"/>
+            @if($coverImage)
+              <div style="margin-top:8px;font-size:12px;color:var(--muted);">Upload en cours…</div>
+              <img src="{{ $coverImage->temporaryUrl() }}" style="margin-top:8px;width:100%;max-height:180px;object-fit:cover;border-radius:10px;border:1px solid var(--border);" alt="Cover preview"/>
+            @elseif($this->coverUrl())
+              <img src="{{ $this->coverUrl() }}" style="margin-top:8px;width:100%;max-height:180px;object-fit:cover;border-radius:10px;border:1px solid var(--border);" alt="Cover"/>
+            @endif
           </div>
         </div>
       </div>
@@ -152,8 +153,57 @@
             <div style="width:28px;height:28px;border-radius:8px;background:var(--mintd);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;">{{ $index + 1 }}</div>
             <div style="flex:1;min-width:0;"><input class="form-input" style="padding:7px 10px;" wire:model.live="chapters.{{ $index }}.title" placeholder="Titre du chapitre"/></div>
             <span class="pill pill-teal">{{ ucfirst($chapter['type'] ?? 'Vidéo') }}</span>
+            @if($index > 0)
+              <button class="btn btn-sm btn-outline" type="button" wire:click="reorderChapters({{ $index }}, {{ $index - 1 }})">↑</button>
+            @endif
+            @if($index < count($chapters)-1)
+              <button class="btn btn-sm btn-outline" type="button" wire:click="reorderChapters({{ $index }}, {{ $index + 1 }})">↓</button>
+            @endif
             <button class="btn btn-sm btn-ghost" type="button" wire:click="editChapter({{ $index }})">Éditer</button>
             <button class="btn btn-sm btn-outline" type="button" wire:click="removeChapter({{ $index }})">✕</button>
+          </div>
+          <div class="lesson-box">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+              <strong style="font-size:12px;">Leçons</strong>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="btn btn-sm btn-outline" type="button" wire:click="addLesson({{ $index }}, 'video')">+ Vidéo</button>
+                <button class="btn btn-sm btn-outline" type="button" wire:click="addLesson({{ $index }}, 'text')">+ Texte</button>
+                <button class="btn btn-sm btn-outline" type="button" wire:click="addLesson({{ $index }}, 'pdf')">+ PDF</button>
+              </div>
+            </div>
+            @foreach(($chapter['lessons'] ?? []) as $lessonIndex => $lesson)
+              <div style="padding:10px;border:1px dashed var(--border);border-radius:8px;margin-bottom:8px;">
+                <input class="form-input" style="margin-bottom:6px;" wire:model.live="chapters.{{ $index }}.lessons.{{ $lessonIndex }}.title" placeholder="Titre leçon"/>
+                <select class="form-select" style="margin-bottom:6px;" wire:model.live="chapters.{{ $index }}.lessons.{{ $lessonIndex }}.type">
+                  <option value="video">Vidéo</option>
+                  <option value="text">Texte</option>
+                  <option value="pdf">PDF</option>
+                </select>
+                @if(($chapter['lessons'][$lessonIndex]['type'] ?? '') === 'text')
+                  <textarea class="form-input" wire:model.live="chapters.{{ $index }}.lessons.{{ $lessonIndex }}.content" placeholder="Contenu texte (WYSIWYG simplifié)"></textarea>
+                @elseif(($chapter['lessons'][$lessonIndex]['type'] ?? '') === 'video')
+                  <input type="file" class="form-input" wire:model.live="lessonVideoUploads.{{ $index }}.{{ $lessonIndex }}" accept="video/*"/>
+                  @if(!empty($chapter['lessons'][$lessonIndex]['video_url']))
+                    <div style="font-size:11px;color:var(--muted);margin-top:4px;">Vidéo: {{ basename($chapter['lessons'][$lessonIndex]['video_url']) }}</div>
+                  @endif
+                @else
+                  <input type="file" class="form-input" wire:model.live="lessonResourceUploads.{{ $index }}.{{ $lessonIndex }}" accept=".pdf,.doc,.docx,.ppt,.pptx,.zip"/>
+                  @if(!empty($chapter['lessons'][$lessonIndex]['resource_name']))
+                    <div style="font-size:11px;color:var(--muted);margin-top:4px;">Fichier: {{ $chapter['lessons'][$lessonIndex]['resource_name'] }}</div>
+                  @endif
+                @endif
+                <button class="btn btn-sm btn-ghost" type="button" wire:click="removeLesson({{ $index }}, {{ $lessonIndex }})">Supprimer leçon</button>
+              </div>
+            @endforeach
+            <div style="margin-top:8px;">
+              <label style="font-size:12px;color:var(--muted);">Quiz associé à ce chapitre</label>
+              <select class="form-select" wire:model.live="chapters.{{ $index }}.quiz_id">
+                <option value="">Aucun quiz</option>
+                @foreach($this->availableQuizzes as $quiz)
+                  <option value="{{ $quiz->id }}">{{ $quiz->title }}</option>
+                @endforeach
+              </select>
+            </div>
           </div>
           @empty
           <p style="color:var(--muted);text-align:center;padding:20px;">Aucun chapitre pour le moment. Cliquez sur "Ajouter" pour commencer.</p>
@@ -252,10 +302,46 @@
         <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
           <button class="btn btn-primary" style="width:100%;" type="button" wire:click="publishCourse">🚀 Soumettre pour publication</button>
           <button class="btn btn-outline" style="width:100%;" type="button" wire:click="saveDraft">💾 Sauvegarder le brouillon</button>
-          <button class="btn btn-ghost" style="width:100%;" type="button">👁 Aperçu étudiant</button>
+          <button class="btn btn-ghost" style="width:100%;" type="button" wire:click="toggleStudentPreview">👁 Aperçu étudiant</button>
+          <div style="font-size:11px;color:var(--muted);text-align:center;">Auto-save toutes les 15s (si infos minimales remplies)</div>
+          @if($lastAutoSaveAt)
+            <div style="font-size:11px;color:var(--muted);text-align:center;">Dernière sauvegarde: {{ $lastAutoSaveAt }}</div>
+          @endif
         </div>
       </div>
     </div>
   </div>
+
+  @if($showStudentPreview)
+    <div class="card card-p" style="margin-top:20px;">
+      <div class="card-title">🧑‍🎓 Prévisualisation Étudiant</div>
+      <h3 style="margin-top:10px;">{{ $title ?: 'Titre du cours' }}</h3>
+      <p style="color:var(--muted);">{!! $description ?: $shortDescription !!}</p>
+      <ul style="margin-top:10px;padding-left:18px;">
+        @foreach($chapters as $chapter)
+          <li>{{ $chapter['title'] }} ({{ count($chapter['lessons'] ?? []) }} leçons)</li>
+        @endforeach
+      </ul>
+    </div>
+  @endif
+
+  <div class="card card-p" style="margin-top:20px;">
+    <div class="card-title">✅ Checklist de publication ({{ $this->publicationChecklist['done_count'] }}/{{ $this->publicationChecklist['total_count'] }})</div>
+    <div class="prog-bar" style="margin:10px 0;"><div class="prog-fill prog-v" style="width:{{ $this->publicationChecklist['percent'] }}%;"></div></div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+      @foreach($this->publicationChecklist['items'] as $item)
+        <div style="font-size:12px;">{{ $item['done'] ? '✅' : '⬜' }} {{ $item['label'] }}</div>
+      @endforeach
+    </div>
+  </div>
+
+  <script>
+    setInterval(function () {
+      const lw = window.Livewire.find('{{ $this->getId() }}');
+      if (lw) {
+        lw.call('autoSaveDraft');
+      }
+    }, 15000);
+  </script>
 
 </div>

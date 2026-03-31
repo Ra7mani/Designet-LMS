@@ -181,12 +181,16 @@ function loadNotifications() {
   fetch('/formateur/api/notifications')
     .then(response => response.json())
     .then(data => {
-      if (!data || data.length === 0) {
+      const items = data?.items || [];
+      const unreadCount = data?.unread_count || 0;
+
+      if (!items || items.length === 0) {
         notifList.innerHTML = '<div class="notif-empty">Aucune notification</div>';
+        updateNotificationBadge(0);
         return;
       }
 
-      notifList.innerHTML = data.map(notif => `
+      notifList.innerHTML = items.map(notif => `
         <div class="notif-item">
           <div class="notif-avatar">${notif.user_avatar}</div>
           <div class="notif-content">
@@ -197,7 +201,7 @@ function loadNotifications() {
         </div>
       `).join('');
 
-      updateNotificationBadge(data.length);
+      updateNotificationBadge(unreadCount);
     })
     .catch(error => {
       console.error('Error loading notifications:', error);

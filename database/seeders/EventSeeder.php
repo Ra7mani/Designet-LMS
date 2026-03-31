@@ -2,7 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Cours;
+use App\Models\Event;
+use App\Models\Session;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class EventSeeder extends Seeder
@@ -12,11 +15,11 @@ class EventSeeder extends Seeder
      */
     public function run(): void
     {
-        $user = \App\Models\User::first() ?? \App\Models\User::factory()->create();
-        $curso = \App\Models\Cours::first() ?? \App\Models\Cours::factory()->create();
+        $user = User::first() ?? User::factory()->create();
+        $curso = Cours::first() ?? Cours::factory()->create();
 
         // TODAY'S SESSION
-        \App\Models\Session::create([
+        Session::create([
             'title' => 'Session Live: UX Design',
             'description' => 'Apprendre les principes du design UX moderne',
             'start_time' => now()->setHour(10)->setMinute(0)->setSecond(0),
@@ -29,7 +32,7 @@ class EventSeeder extends Seeder
         ]);
 
         // TOMORROW MORNING (THIS WEEK)
-        \App\Models\Session::create([
+        Session::create([
             'title' => 'Atelier: JavaScript Avancé',
             'description' => 'Approfondissez vos connaissances en JavaScript',
             'start_time' => now()->addDays(1)->setHour(9)->setMinute(0)->setSecond(0),
@@ -42,7 +45,7 @@ class EventSeeder extends Seeder
         ]);
 
         // THIS WEEK (2 DAYS FROM NOW)
-        \App\Models\Session::create([
+        Session::create([
             'title' => 'Séance Q&A: Frameworks',
             'description' => 'Posez vos questions sur les frameworks.',
             'start_time' => now()->addDays(2)->setHour(14)->setMinute(0)->setSecond(0),
@@ -55,7 +58,7 @@ class EventSeeder extends Seeder
         ]);
 
         // THIS WEEK (3 DAYS FROM NOW)
-        \App\Models\Session::create([
+        Session::create([
             'title' => 'Workshop: React Hooks',
             'description' => 'Maîtriser les React Hooks en profondeur',
             'start_time' => now()->addDays(3)->setHour(16)->setMinute(0)->setSecond(0),
@@ -68,9 +71,9 @@ class EventSeeder extends Seeder
         ]);
 
         // CREATE EVENTS FROM SESSIONS
-        $sessions = \App\Models\Session::all();
+        $sessions = Session::all();
         foreach ($sessions as $session) {
-            \App\Models\Event::create([
+            Event::create([
                 'title' => $session->title,
                 'description' => $session->description,
                 'start_date' => $session->start_time,
@@ -84,7 +87,7 @@ class EventSeeder extends Seeder
 
         // ADD EXAMS (FOR BANNER AND STATISTICS)
         // EXAM WITHIN 48 HOURS
-        \App\Models\Event::create([
+        Event::create([
             'title' => 'Examen Motion Design',
             'description' => 'Évaluation des compétences en design de mouvement',
             'start_date' => now()->addHours(36),
@@ -96,7 +99,7 @@ class EventSeeder extends Seeder
         ]);
 
         // ANOTHER EXAM (3 DAYS AWAY)
-        \App\Models\Event::create([
+        Event::create([
             'title' => 'Examen JavaScript Avancé',
             'description' => 'Test de maîtrise du JavaScript moderne',
             'start_date' => now()->addDays(3)->setHour(14)->setMinute(0),
@@ -108,7 +111,7 @@ class EventSeeder extends Seeder
         ]);
 
         // ADD WEBINAR/COURSE EVENTS
-        \App\Models\Event::create([
+        Event::create([
             'title' => 'Webinaire: Tendances Web 2024',
             'description' => 'Découvrez les grandes tendances du web design',
             'start_date' => now()->addDays(5)->setHour(18)->setMinute(0),
@@ -119,7 +122,7 @@ class EventSeeder extends Seeder
             'created_by' => $user->id,
         ]);
 
-        \App\Models\Event::create([
+        Event::create([
             'title' => 'Séminaire: UI Design Patterns',
             'description' => 'Patterns et bonnes pratiques en design UI',
             'start_date' => now()->addDays(7)->setHour(10)->setMinute(0),

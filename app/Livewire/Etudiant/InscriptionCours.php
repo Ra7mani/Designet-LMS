@@ -9,6 +9,7 @@ use Livewire\Component;
 class InscriptionCours extends Component
 {
     public Cours $cours;
+
     public bool $dejaInscrit = false;
 
     public function mount(Cours $cours): void
@@ -26,11 +27,11 @@ class InscriptionCours extends Component
         }
 
         Inscription::create([
-            'etudiant_id'  => auth()->id(),
-            'cours_id'     => $this->cours->id,
-            'enrolled_at'  => now(),
-            'progress'     => 0,
-            'status'       => 'active',
+            'etudiant_id' => auth()->id(),
+            'cours_id' => $this->cours->id,
+            'enrolled_at' => now(),
+            'progress' => 0,
+            'status' => 'active',
         ]);
 
         $this->dejaInscrit = true;

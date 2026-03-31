@@ -4,10 +4,10 @@ namespace App\Livewire\Etudiant;
 
 use App\Enums\EnrollStatus;
 use App\Models\Certificat;
+use Livewire\Attributes\On;
+use Livewire\Attributes\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Livewire\Attributes\Rule;
-use Livewire\Attributes\On;
 
 class Profil extends Component
 {
@@ -51,6 +51,7 @@ class Profil extends Component
     public $avatar;
 
     public $avatarPreview = '';
+
     public $avatarUpdated = false;
 
     // Skills
@@ -81,13 +82,13 @@ class Profil extends Component
         $this->selectedSkills = $user->getSkills();
 
         if ($user->avatar_path) {
-            $this->avatarPreview = asset('storage/' . $user->avatar_path);
+            $this->avatarPreview = asset('storage/'.$user->avatar_path);
         }
     }
 
     public function toggleEditMode()
     {
-        $this->editMode = !$this->editMode;
+        $this->editMode = ! $this->editMode;
         if ($this->editMode) {
             $this->dispatch('scroll-to-edit');
         }
@@ -152,7 +153,7 @@ class Profil extends Component
         $this->validate([
             'firstName' => 'required|string|max:255',
             'lastName' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'email' => 'required|email|max:255|unique:users,email,'.$user->id,
             'phone' => 'nullable|string|max:20',
             'location' => 'nullable|string|max:255',
             'professional_objective' => 'nullable|string|max:255',
@@ -175,7 +176,7 @@ class Profil extends Component
             'portfolio_url' => $this->portfolio_url,
         ];
 
-        $validated['name'] = $this->firstName . ' ' . $this->lastName;
+        $validated['name'] = $this->firstName.' '.$this->lastName;
 
         try {
             $user->update($validated);
@@ -193,8 +194,8 @@ class Profil extends Component
             $user = auth()->user();
 
             // Delete old avatar
-            if ($user->avatar_path && file_exists(storage_path('app/public/' . $user->avatar_path))) {
-                unlink(storage_path('app/public/' . $user->avatar_path));
+            if ($user->avatar_path && file_exists(storage_path('app/public/'.$user->avatar_path))) {
+                unlink(storage_path('app/public/'.$user->avatar_path));
             }
 
             // Store new avatar
@@ -204,7 +205,7 @@ class Profil extends Component
             // Force refresh user data in session
             auth()->setUser($user->fresh());
 
-            $this->avatarPreview = asset('storage/' . $path);
+            $this->avatarPreview = asset('storage/'.$path);
             $this->avatarUpdated = true;
             $this->avatar = null;
 
@@ -219,10 +220,11 @@ class Profil extends Component
 
         if (count($this->selectedSkills) >= 12) {
             $this->dispatch('notify', message: '⚠️ Maximum 12 compétences autorisées');
+
             return;
         }
 
-        if (!in_array($this->skillInput, $this->selectedSkills)) {
+        if (! in_array($this->skillInput, $this->selectedSkills)) {
             $this->selectedSkills[] = $this->skillInput;
             auth()->user()->update(['skills_json' => $this->selectedSkills]);
             $this->skillInput = '';
@@ -251,12 +253,12 @@ class Profil extends Component
         $badges = $inscriptions->pluck('badge')->filter();
 
         // Charge tous les certificats liés à l'utilisateur, indépendamment du statut
-        $certificats = Certificat::whereHas('inscription', function($query) use ($user) {
+        $certificats = Certificat::whereHas('inscription', function ($query) use ($user) {
             $query->where('etudiant_id', $user->id);
         })
-        ->with('inscription.cours')
-        ->latest()
-        ->get();
+            ->with('inscription.cours')
+            ->latest()
+            ->get();
 
         $totalXp = $inscriptions->count() * 100
             + $inscriptions->where('status', EnrollStatus::Completed)->count() * 200;
@@ -280,4 +282,3 @@ class Profil extends Component
         ])->layout('layouts.etudiant');
     }
 }
-

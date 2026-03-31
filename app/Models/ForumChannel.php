@@ -33,4 +33,3 @@ class ForumChannel extends Model
         return $this->messages()->latest()->first();
     }
 }
-

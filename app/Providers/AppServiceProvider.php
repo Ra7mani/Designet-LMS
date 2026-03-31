@@ -54,11 +54,11 @@ class AppServiceProvider extends ServiceProvider
         Fortify::redirects('login', function () {
             $user = auth()->user();
 
-            return match($user->role) {
-                RoleType::Admin     => route('admin.dashboard'),
+            return match ($user->role) {
+                RoleType::Admin => route('admin.dashboard'),
                 RoleType::Formateur => route('formateur.dashboard'),
-                RoleType::Etudiant  => route('etudiant.dashboard'),
-                default             => route('etudiant.dashboard'),
+                RoleType::Etudiant => route('etudiant.dashboard'),
+                default => route('etudiant.dashboard'),
             };
         });
     }

@@ -11,14 +11,20 @@ use Livewire\Component;
 class DetailCours extends Component
 {
     public Cours $cours;
+
     public bool $dejaInscrit = false;
+
     public ?Inscription $inscription = null;
 
     // Review form
     public int $rating = 5;
+
     public string $comment = '';
+
     public bool $hasReviewed = false;
+
     public ?Avis $userReview = null;
+
     public bool $showReviewForm = false;
 
     protected $rules = [
@@ -65,10 +71,10 @@ class DetailCours extends Component
 
         $this->inscription = Inscription::create([
             'etudiant_id' => auth()->id(),
-            'cours_id'    => $this->cours->id,
+            'cours_id' => $this->cours->id,
             'enrolled_at' => now(),
-            'progress'    => 0,
-            'status'      => EnrollStatus::Active,
+            'progress' => 0,
+            'status' => EnrollStatus::Active,
         ]);
 
         $this->dejaInscrit = true;
@@ -82,13 +88,14 @@ class DetailCours extends Component
 
     public function toggleReviewForm(): void
     {
-        $this->showReviewForm = !$this->showReviewForm;
+        $this->showReviewForm = ! $this->showReviewForm;
     }
 
     public function submitReview(): void
     {
-        if (!$this->dejaInscrit || !$this->inscription) {
+        if (! $this->dejaInscrit || ! $this->inscription) {
             session()->flash('error', 'Vous devez etre inscrit pour laisser un avis.');
+
             return;
         }
 
@@ -139,19 +146,19 @@ class DetailCours extends Component
     {
         // Calculate stats
         $chaptersCount = $this->cours->chapitres->count();
-        $lessonsCount = $this->cours->chapitres->sum(fn($c) => $c->lecons->count());
+        $lessonsCount = $this->cours->chapitres->sum(fn ($c) => $c->lecons->count());
         $quizzesCount = $this->cours->quizzes->count();
-        $questionsCount = $this->cours->quizzes->sum(fn($q) => $q->questions->count());
+        $questionsCount = $this->cours->quizzes->sum(fn ($q) => $q->questions->count());
         $studentsCount = $this->cours->inscriptions_count;
 
         // Calculate total duration
-        $totalDuration = $this->cours->chapitres->sum(fn($c) => $c->lecons->sum('duration'));
+        $totalDuration = $this->cours->chapitres->sum(fn ($c) => $c->lecons->sum('duration'));
 
         // Get reviews from inscriptions (approved only for display)
         $avis = $this->cours->inscriptions
             ->pluck('avis')
             ->flatten()
-            ->filter(fn($a) => $a && $a->is_approved)
+            ->filter(fn ($a) => $a && $a->is_approved)
             ->sortByDesc('created_at');
 
         $avgRating = $avis->count() > 0 ? round($avis->avg('rating'), 1) : 0;

@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-enum EnrollStatus : string
+enum EnrollStatus: string
 {
     case Active = 'active';
     case Completed = 'completed';

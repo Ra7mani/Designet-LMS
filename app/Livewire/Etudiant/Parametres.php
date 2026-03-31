@@ -2,12 +2,16 @@
 
 namespace App\Livewire\Etudiant;
 
-use Livewire\Component;
-use Livewire\Attributes\Rule;
-use Livewire\Attributes\Layout;
+use BaconQrCode\Renderer\Image\SvgImageBackend;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Rule;
+use Livewire\Component;
 
 #[Layout('layouts.etudiant')]
 class Parametres extends Component
@@ -36,8 +40,11 @@ class Parametres extends Component
 
     // Notification Section
     public bool $email_notifications = true;
+
     public bool $course_reminders = true;
+
     public bool $announcements = false;
+
     public bool $forum_messages = true;
 
     // Security Section
@@ -48,13 +55,21 @@ class Parametres extends Component
     public string $newPassword = '';
 
     public string $newPassword_confirmation = '';
+
     public bool $showCurrentPassword = false;
+
     public bool $showNewPassword = false;
+
     public bool $showPasswordConfirmation = false;
+
     public bool $twoFactorEnabled = false;
+
     public string $twoFactorQrCode = '';
+
     public array $recoveryCodesList = [];
+
     public string $confirmPasswordForTwoFactor = '';
+
     public string $twoFactorOtpInput = '';
 
     // Preferences Section
@@ -63,18 +78,25 @@ class Parametres extends Component
 
     // Subscription
     public string $subscriptionPlan = 'free';
+
     public ?string $subscriptionExpiresAt = null;
 
     // Modal states
     public bool $showDeleteModal = false;
+
     public bool $show2FASetupModal = false;
+
     public bool $showUpgradeModal = false;
+
     public string $deleteConfirmationText = '';
+
     public string $selectedPlan = 'premium';
 
     // Error handling
     public string $passwordChangeError = '';
+
     public string $passwordChangeSuccess = '';
+
     public string $twoFactorError = '';
 
     public function mount()
@@ -145,7 +167,7 @@ class Parametres extends Component
             $this->validate([
                 'firstName' => 'required|string|max:255',
                 'lastName' => 'required|string|max:255',
-                'email' => 'required|email|max:255|unique:users,email,' . auth()->id(),
+                'email' => 'required|email|max:255|unique:users,email,'.auth()->id(),
                 'phone' => 'nullable|string|max:20',
                 'bio' => 'nullable|string|max:2000',
                 'language' => 'required|in:fr,en,ar',
@@ -163,7 +185,7 @@ class Parametres extends Component
 
             $this->dispatch('notify', message: '✅ Informations mises à jour');
         } catch (\Exception $e) {
-            $this->dispatch('notify', message: '❌ Erreur: ' . $e->getMessage());
+            $this->dispatch('notify', message: '❌ Erreur: '.$e->getMessage());
         }
     }
 
@@ -202,7 +224,7 @@ class Parametres extends Component
             auth()->user()->updateNotificationPreferences($prefs);
             $this->dispatch('notify', message: '✅ Préférences de notification mises à jour');
         } catch (\Exception $e) {
-            $this->dispatch('notify', message: '❌ Erreur: ' . $e->getMessage());
+            $this->dispatch('notify', message: '❌ Erreur: '.$e->getMessage());
         }
     }
 
@@ -222,8 +244,9 @@ class Parametres extends Component
             $user = auth()->user();
 
             // Verify current password
-            if (!Hash::check($this->currentPassword, $user->password)) {
+            if (! Hash::check($this->currentPassword, $user->password)) {
                 $this->passwordChangeError = 'Le mot de passe actuel est incorrect';
+
                 return;
             }
 
@@ -241,23 +264,23 @@ class Parametres extends Component
             // Clear after 5 seconds
             $this->dispatch('clearSuccessMessage');
         } catch (\Exception $e) {
-            $this->passwordChangeError = 'Erreur lors du changement de mot de passe: ' . $e->getMessage();
+            $this->passwordChangeError = 'Erreur lors du changement de mot de passe: '.$e->getMessage();
         }
     }
 
     public function toggleCurrentPassword()
     {
-        $this->showCurrentPassword = !$this->showCurrentPassword;
+        $this->showCurrentPassword = ! $this->showCurrentPassword;
     }
 
     public function toggleNewPassword()
     {
-        $this->showNewPassword = !$this->showNewPassword;
+        $this->showNewPassword = ! $this->showNewPassword;
     }
 
     public function togglePasswordConfirmation()
     {
-        $this->showPasswordConfirmation = !$this->showPasswordConfirmation;
+        $this->showPasswordConfirmation = ! $this->showPasswordConfirmation;
     }
 
     public function initiateTwoFactorSetup()
@@ -276,18 +299,18 @@ class Parametres extends Component
             $qrCodeUrl = $provider->qrCodeUrl(config('app.name'), $user->email, $secret);
 
             // Create QR code SVG using BaconQrCode
-            $renderer = new \BaconQrCode\Renderer\ImageRenderer(
-                new \BaconQrCode\Renderer\RendererStyle\RendererStyle(200),
-                new \BaconQrCode\Renderer\Image\SvgImageBackend()
+            $renderer = new ImageRenderer(
+                new RendererStyle(200),
+                new SvgImageBackend
             );
-            $writer = new \BaconQrCode\Writer($renderer);
+            $writer = new Writer($renderer);
             $qrCodeData = $writer->writeString($qrCodeUrl);
 
             $this->twoFactorQrCode = $qrCodeData;
             $this->show2FASetupModal = true;
             $this->twoFactorError = '';
         } catch (\Exception $e) {
-            $this->dispatch('notify', message: '❌ Erreur lors de la configuration 2FA: ' . $e->getMessage());
+            $this->dispatch('notify', message: '❌ Erreur lors de la configuration 2FA: '.$e->getMessage());
         }
     }
 
@@ -301,6 +324,7 @@ class Parametres extends Component
 
             if (empty($this->twoFactorOtpInput)) {
                 $this->twoFactorError = 'Veuillez entrer le code OTP';
+
                 return;
             }
 
@@ -311,8 +335,9 @@ class Parametres extends Component
                 $this->twoFactorOtpInput
             );
 
-            if (!$isValid) {
+            if (! $isValid) {
                 $this->twoFactorError = 'Code OTP invalide';
+
                 return;
             }
 
@@ -331,7 +356,7 @@ class Parametres extends Component
             $this->twoFactorOtpInput = '';
             $this->dispatch('notify', message: '✅ Authentification 2FA activée');
         } catch (\Exception $e) {
-            $this->twoFactorError = 'Erreur: ' . $e->getMessage();
+            $this->twoFactorError = 'Erreur: '.$e->getMessage();
         }
     }
 
@@ -391,7 +416,7 @@ class Parametres extends Component
                 'courses' => $user->inscriptions()
                     ->with('cours')
                     ->get()
-                    ->map(fn($insc) => [
+                    ->map(fn ($insc) => [
                         'course_name' => $insc->cours->nom,
                         'enrolled_at' => $insc->created_at->toIso8601String(),
                     ]),
@@ -402,7 +427,7 @@ class Parametres extends Component
                 ],
             ];
 
-            $filename = "export_" . $user->id . "_" . now()->format('Y-m-d_H-i-s') . ".json";
+            $filename = 'export_'.$user->id.'_'.now()->format('Y-m-d_H-i-s').'.json';
             $filepath = "exports/{$filename}";
 
             Storage::disk('public')->put($filepath, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
@@ -424,6 +449,7 @@ class Parametres extends Component
         try {
             if ($this->deleteConfirmationText !== auth()->user()->email) {
                 $this->dispatch('notify', message: '❌ Email de confirmation incorrect');
+
                 return;
             }
 
@@ -453,7 +479,7 @@ class Parametres extends Component
             $user = auth()->user();
 
             // Simple upgrade logic - in production, integrate with payment gateway
-            $subscription_expires_at = match($this->selectedPlan) {
+            $subscription_expires_at = match ($this->selectedPlan) {
                 'premium' => now()->addDays(30),
                 'pro' => now()->addDays(90),
                 'enterprise' => now()->addDays(365),
@@ -472,7 +498,7 @@ class Parametres extends Component
             $this->showUpgradeModal = false;
             $this->dispatch('notify', message: '✅ Plan mis à jour avec succès!');
         } catch (\Exception $e) {
-            $this->dispatch('notify', message: '❌ Erreur lors de la mise à jour du plan: ' . $e->getMessage());
+            $this->dispatch('notify', message: '❌ Erreur lors de la mise à jour du plan: '.$e->getMessage());
         }
     }
 
@@ -489,7 +515,7 @@ class Parametres extends Component
 
             $this->dispatch('notify', message: '✅ Tous les paramètres ont été sauvegardés!');
         } catch (\Exception $e) {
-            $this->dispatch('notify', message: '❌ Erreur lors de la sauvegarde: ' . $e->getMessage());
+            $this->dispatch('notify', message: '❌ Erreur lors de la sauvegarde: '.$e->getMessage());
         }
     }
 

@@ -2,13 +2,13 @@
 
 use App\Enums\CourseStatus;
 use App\Enums\RoleType;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Str;
+use App\Http\Controllers\LogoutController;
 use App\Models\Avis;
 use App\Models\Certificat;
 use App\Models\Cours;
 use App\Models\User;
-use App\Http\Controllers\LogoutController;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 
 Route::get('/', function () {
     $studentsCount = User::where('role', RoleType::Etudiant)->count();
@@ -72,7 +72,7 @@ Route::get('/', function () {
                 'title' => $course->title,
                 'trainer_name' => $course->formateur?->name ?? 'Formateur DesignLMS',
                 'level' => $course->level ?: 'Tous niveaux',
-                'price' => $isFree ? 'Gratuit' : number_format($price, 0, ',', ' ') . '€',
+                'price' => $isFree ? 'Gratuit' : number_format($price, 0, ',', ' ').'€',
                 'rating' => number_format($rating > 0 ? $rating : 4.7, 1),
                 'reviews_count' => $course->inscriptions_count,
                 'category' => $course->categorie?->name ?? 'Formation',
@@ -184,7 +184,7 @@ Route::get('/', function () {
             [
                 'name' => 'Amira Mansouri',
                 'role' => '🎓 Étudiante · UX/UI Designer',
-                'comment' => "Cours exceptionnel ! Karim explique avec une clarté remarquable. Les exercices pratiques sont très bien pensés.",
+                'comment' => 'Cours exceptionnel ! Karim explique avec une clarté remarquable. Les exercices pratiques sont très bien pensés.',
                 'initials' => 'AM',
                 'gradientStyle' => 'background:linear-gradient(135deg,#DB2777,#F472B6)',
                 'stars' => 5,
@@ -192,7 +192,7 @@ Route::get('/', function () {
             [
                 'name' => 'Karim Benzali',
                 'role' => '🧑‍🏫 Formateur UX/UI',
-                'comment' => "En tant que formateur, la plateforme est un vrai game-changer. Je gère mes cours, mes étudiants et mes revenus depuis un seul endroit.",
+                'comment' => 'En tant que formateur, la plateforme est un vrai game-changer. Je gère mes cours, mes étudiants et mes revenus depuis un seul endroit.',
                 'initials' => 'KB',
                 'gradientStyle' => 'background:linear-gradient(135deg,#0284C7,#38BDF8)',
                 'stars' => 5,
@@ -200,7 +200,7 @@ Route::get('/', function () {
             [
                 'name' => 'Nadia Drissi',
                 'role' => '🎓 Étudiante · Figma Masterclass',
-                'comment' => "Les sessions live sont incroyables. On peut poser des questions en temps réel et revoir les enregistrements ensuite.",
+                'comment' => 'Les sessions live sont incroyables. On peut poser des questions en temps réel et revoir les enregistrements ensuite.',
                 'initials' => 'ND',
                 'gradientStyle' => 'background:linear-gradient(135deg,#059669,#34D399)',
                 'stars' => 5,
@@ -219,15 +219,21 @@ Route::get('/', function () {
 require __DIR__.'/admin.php';
 require __DIR__.'/formateur.php';
 require __DIR__.'/etudiant.php';
+require __DIR__.'/settings.php';
 
 Route::get('/dashboard', function () {
-    if (auth()->user()->isAdmin()) {
+    $user = auth()->user();
+
+    if ($user->isAdmin()) {
         return redirect()->route('admin.dashboard');
-    } elseif (auth()->user()->isFormateur()) {
+    } elseif ($user->isFormateur()) {
         return redirect()->route('formateur.dashboard');
-    } else {
+    } elseif ($user->isEtudiant()) {
         return redirect()->route('etudiant.dashboard');
     }
+
+    // Fallback for authenticated users without explicit role.
+    return response('Dashboard', 200);
 })->middleware(['auth'])->name('dashboard');
 
 // Logout route

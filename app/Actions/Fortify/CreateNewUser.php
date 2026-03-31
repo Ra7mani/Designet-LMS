@@ -18,14 +18,14 @@ class CreateNewUser implements CreatesNewUsers
         Validator::make($input, [
             ...$this->profileRules(),
             'password' => $this->passwordRules(),
-            'role'     => ['required', 'in:etudiant,formateur'],
+            'role' => ['nullable', 'in:etudiant,formateur'],
         ])->validate();
 
         return User::create([
-            'name'     => $input['name'],
-            'email'    => $input['email'],
+            'name' => $input['name'],
+            'email' => $input['email'],
             'password' => $input['password'],
-            'role'     => $input['role'] ?? RoleType::Etudiant->value,
+            'role' => $input['role'] ?? RoleType::Etudiant->value,
         ]);
     }
 }

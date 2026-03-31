@@ -2,30 +2,43 @@
 
 namespace App\Livewire\Formateur;
 
-use Livewire\Component;
-use Livewire\Attributes\Layout;
-use App\Models\Session;
 use App\Models\Cours;
+use App\Models\Session;
 use Carbon\Carbon;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
+use Livewire\Component;
 
 #[Layout('layouts.formateur')]
 class Planning extends Component
 {
     public $viewMode = 'month';
+
     public $currentMonth = 0;
+
     public $currentYear = 0;
+
     public $selectedEventId = null;
+
     public $showCreateModal = false;
+
     public $showSessionModal = false;
 
     // Form data for creating session
     public $sessionType = '';
+
     public $sessionTitle = '';
+
     public $associatedCourse = '';
+
     public $sessionDate = '';
+
     public $sessionTime = '';
+
     public $sessionDuration = 120;
+
     public $sessionRoom = '';
+
     public $sessionDescription = '';
 
     // Session details for modal
@@ -62,7 +75,7 @@ class Planning extends Component
         }
     }
 
-    #[\Livewire\Attributes\Computed]
+    #[Computed]
     public function stats()
     {
         $formateur = auth()->user();
@@ -94,10 +107,11 @@ class Planning extends Component
         ];
     }
 
-    #[\Livewire\Attributes\Computed]
+    #[Computed]
     public function upcomingSessions()
     {
         $formateur = auth()->user();
+
         return Session::where('formateur_id', $formateur->id)
             ->where('start_time', '>=', now())
             ->orderBy('start_time', 'asc')
@@ -107,14 +121,14 @@ class Planning extends Component
                 $duration = $session->start_time->diffInMinutes($session->end_time);
                 $hours = intdiv($duration, 60);
                 $mins = $duration % 60;
-                $durationText = $hours > 0 ? "{$hours}h" . ($mins > 0 ? " {$mins}min" : '') : "{$mins}min";
+                $durationText = $hours > 0 ? "{$hours}h".($mins > 0 ? " {$mins}min" : '') : "{$mins}min";
 
                 return [
                     'id' => $session->id,
                     'title' => $session->title,
                     'type' => $session->type,
-                    'date' => $session->start_time->format('d M H:i') . ' – ' . $session->end_time->format('H:i'),
-                    'meta' => ($session->max_attendees ?? 'N/A') . ' inscrits · ' . ($session->session_room ?? 'En ligne') . ' · ' . $durationText,
+                    'date' => $session->start_time->format('d M H:i').' – '.$session->end_time->format('H:i'),
+                    'meta' => ($session->max_attendees ?? 'N/A').' inscrits · '.($session->session_room ?? 'En ligne').' · '.$durationText,
                     'status' => $this->getSessionStatus($session),
                     'enrolled' => $session->max_attendees ?? 0,
                     'room' => $session->session_room ?? 'Virtuelle',
@@ -123,10 +137,11 @@ class Planning extends Component
             });
     }
 
-    #[\Livewire\Attributes\Computed]
+    #[Computed]
     public function attendanceRates()
     {
         $formateur = auth()->user();
+
         return Cours::where('formateur_id', $formateur->id)
             ->with('inscriptions')
             ->get()
@@ -141,7 +156,7 @@ class Planning extends Component
 
                 // Estimate attendance rate (enrollments with progress as proxy)
                 $rate = $enrollmentCount > 0
-                    ? min(100, (int)$course->inscriptions->avg('progress') ?? 70)
+                    ? min(100, (int) $course->inscriptions->avg('progress') ?? 70)
                     : 70;
 
                 return [
@@ -153,10 +168,11 @@ class Planning extends Component
             ->take(4);
     }
 
-    #[\Livewire\Attributes\Computed]
+    #[Computed]
     public function courses()
     {
         $formateur = auth()->user();
+
         return Cours::where('formateur_id', $formateur->id)->get();
     }
 
@@ -175,7 +191,8 @@ class Planning extends Component
             });
 
         $hours = intdiv($totalMinutes, 60);
-        return $hours . 'h';
+
+        return $hours.'h';
     }
 
     private function getSessionStatus($session)
@@ -184,10 +201,12 @@ class Planning extends Component
         if ($session->start_time > $now) {
             $diff = $now->diffInMinutes($session->start_time);
             if ($diff <= 45) {
-                return '🔴 Dans ' . $diff . ' min';
+                return '🔴 Dans '.$diff.' min';
             }
+
             return $session->type === 'office' ? 'Office hours' : ucfirst($session->type);
         }
+
         return 'En cours';
     }
 
@@ -234,7 +253,7 @@ class Planning extends Component
         ]);
 
         $formateur = auth()->user();
-        $startTime = Carbon::createFromFormat('Y-m-d H:i', $validated['sessionDate'] . ' ' . $validated['sessionTime']);
+        $startTime = Carbon::createFromFormat('Y-m-d H:i', $validated['sessionDate'].' '.$validated['sessionTime']);
         $endTime = $startTime->copy()->addMinutes($validated['sessionDuration']);
 
         Session::create([

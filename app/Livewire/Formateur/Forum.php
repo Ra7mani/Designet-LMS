@@ -2,21 +2,26 @@
 
 namespace App\Livewire\Formateur;
 
+use App\Models\DirectMessage;
 use App\Models\ForumChannel;
 use App\Models\ForumMessage;
-use App\Models\DirectMessage;
-use Livewire\Component;
-use Livewire\Attributes\Layout;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
+use Livewire\Component;
 
 #[Layout('layouts.formateur')]
 class Forum extends Component
 {
     public $tab = 'forum';
+
     public $selectedChannelId = null;
+
     public $messageInput = '';
+
     public $searchQuery = '';
+
     public $newThreadTitle = '';
+
     public $showThreadModal = false;
 
     #[Computed]
@@ -28,14 +33,15 @@ class Forum extends Component
         return ForumChannel::whereIn('cours_id', $courseIds)
             ->with(['cours', 'messages.user'])
             ->get()
-            ->map(function($channel) {
+            ->map(function ($channel) {
                 $lastMsg = $channel->lastMessage();
+
                 return [
                     'id' => $channel->id,
                     'name' => $channel->name,
                     'icon' => $channel->icon ?? '💬',
                     'color' => 'var(--vxl)',
-                    'last_message' => $lastMsg ? substr($lastMsg->user->name, 0, 20) . ': ' . substr($lastMsg->content, 0, 30) . '...' : 'Aucun message',
+                    'last_message' => $lastMsg ? substr($lastMsg->user->name, 0, 20).': '.substr($lastMsg->content, 0, 30).'...' : 'Aucun message',
                     'unread' => $channel->unreadCount(auth()->id()),
                 ];
             })
@@ -51,10 +57,10 @@ class Forum extends Component
             ->with('sender', 'receiver')
             ->latest()
             ->get()
-            ->groupBy(function($msg) {
+            ->groupBy(function ($msg) {
                 return $msg->sender_id === auth()->id() ? $msg->receiver_id : $msg->sender_id;
             })
-            ->map(function($messages, $userId) {
+            ->map(function ($messages, $userId) {
                 $user = $messages->first()->sender_id === auth()->id()
                     ? $messages->first()->receiver
                     : $messages->first()->sender;
@@ -65,8 +71,8 @@ class Forum extends Component
                     'id' => $user->id,
                     'name' => $user->name,
                     'initials' => strtoupper(substr($user->name, 0, 2)),
-                    'gradient' => 'linear-gradient(135deg,' . $this->getGradient($user->id) . ')',
-                    'last_message' => substr($lastMessage->content, 0, 40) . '...',
+                    'gradient' => 'linear-gradient(135deg,'.$this->getGradient($user->id).')',
+                    'last_message' => substr($lastMessage->content, 0, 40).'...',
                     'time' => $lastMessage->created_at->diffForHumans(),
                     'unread' => $messages->where('is_read', false)->where('receiver_id', auth()->id())->count(),
                 ];
@@ -78,9 +84,10 @@ class Forum extends Component
     #[Computed]
     public function currentChannel()
     {
-        if (!$this->selectedChannelId) {
+        if (! $this->selectedChannelId) {
             $firstChannel = ForumChannel::whereIn('cours_id', auth()->user()->cours()->pluck('id'))
                 ->first();
+
             return $firstChannel ? $this->channels()[0] ?? null : null;
         }
 
@@ -90,7 +97,7 @@ class Forum extends Component
     #[Computed]
     public function messages()
     {
-        if (!$this->selectedChannelId) {
+        if (! $this->selectedChannelId) {
             return [];
         }
 
@@ -98,12 +105,12 @@ class Forum extends Component
             ->with('user')
             ->orderBy('created_at')
             ->get()
-            ->map(function($msg) {
+            ->map(function ($msg) {
                 return [
                     'id' => $msg->id,
                     'author' => $msg->user->name,
                     'initials' => strtoupper(substr($msg->user->name, 0, 2)),
-                    'gradient' => 'linear-gradient(135deg,' . $this->getGradient($msg->user_id) . ')',
+                    'gradient' => 'linear-gradient(135deg,'.$this->getGradient($msg->user_id).')',
                     'message' => $msg->content,
                     'time' => $msg->created_at->format('H:i'),
                     'isOwn' => $msg->user_id === auth()->id(),
@@ -121,7 +128,7 @@ class Forum extends Component
         return ForumChannel::whereIn('cours_id', $courseIds)
             ->with('messages.user', 'cours')
             ->get()
-            ->map(function($channel) {
+            ->map(function ($channel) {
                 $messageCount = $channel->messages()->count();
                 $viewCount = $channel->messages()->distinct('user_id')->count();
 
@@ -130,7 +137,7 @@ class Forum extends Component
                     'author' => $channel->cours->formateur->name ?? 'Formateur',
                     'initials' => strtoupper(substr($channel->cours->formateur->name ?? 'F', 0, 2)),
                     'gradient' => 'linear-gradient(135deg,#0284C7,#38BDF8)',
-                    'title' => '📋 ' . $channel->name,
+                    'title' => '📋 '.$channel->name,
                     'preview' => $channel->description ?? 'Aucune description',
                     'replies' => $messageCount,
                     'views' => $viewCount,
@@ -214,4 +221,3 @@ class Forum extends Component
         return view('livewire.formateur.forum');
     }
 }
-

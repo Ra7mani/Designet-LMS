@@ -2,25 +2,34 @@
 
 namespace App\Livewire\Etudiant;
 
+use App\Models\DirectMessage;
 use App\Models\ForumChannel;
 use App\Models\ForumMessage;
 use App\Models\MessageReaction;
 use App\Models\ReportedMessage;
-use App\Models\DirectMessage;
 use App\Models\User;
 use Livewire\Component;
 
 class Forum extends Component
 {
     public ?ForumChannel $selectedChannel = null;
+
     public $channels = [];
+
     public $messages = [];
+
     public $messageContent = '';
+
     public $view = 'forum'; // 'forum' or 'messages'
+
     public $dmWith = null;
+
     public $dmUsers = [];
+
     public $dmMessages = [];
+
     public $dmContent = '';
+
     public $searchQuery = '';
 
     public function mount(): void
@@ -37,7 +46,7 @@ class Forum extends Component
             ->with('messages.user')
             ->orderBy('name')
             ->get()
-            ->map(fn($channel) => [
+            ->map(fn ($channel) => [
                 'id' => $channel->id,
                 'name' => $channel->name,
                 'icon' => $channel->icon ?? '📚',
@@ -45,7 +54,7 @@ class Forum extends Component
             ])
             ->toArray();
 
-        if (count($this->channels) > 0 && !$this->selectedChannel) {
+        if (count($this->channels) > 0 && ! $this->selectedChannel) {
             $this->selectChannel($this->channels[0]['id']);
         }
     }
@@ -58,7 +67,7 @@ class Forum extends Component
             ->latest()
             ->get();
 
-        $this->messages = $messages?->map(fn($m) => [
+        $this->messages = $messages?->map(fn ($m) => [
             'id' => $m->id,
             'user_id' => $m->user_id,
             'user' => ['name' => $m->user->name, 'initials' => $m->user->initials()],
@@ -83,7 +92,7 @@ class Forum extends Component
     {
         $this->validate(['messageContent' => 'required|string|max:5000']);
 
-        if (!$this->selectedChannel) {
+        if (! $this->selectedChannel) {
             return;
         }
 
@@ -124,7 +133,7 @@ class Forum extends Component
             ->where('reporter_id', auth()->id())
             ->first();
 
-        if (!$existingReport) {
+        if (! $existingReport) {
             ReportedMessage::create([
                 'message_id' => $messageId,
                 'reporter_id' => auth()->id(),
@@ -158,7 +167,7 @@ class Forum extends Component
             ->select('id', 'name', 'email')
             ->orderBy('name')
             ->get()
-            ->map(fn($u) => [
+            ->map(fn ($u) => [
                 'id' => $u->id,
                 'name' => $u->name,
                 'unread_count' => DirectMessage::where('sender_id', $u->id)
@@ -177,8 +186,9 @@ class Forum extends Component
 
     public function loadDmMessages(): void
     {
-        if (!$this->dmWith) {
+        if (! $this->dmWith) {
             $this->dmMessages = [];
+
             return;
         }
 
@@ -188,19 +198,19 @@ class Forum extends Component
         $this->dmMessages = DirectMessage::where(function ($query) use ($userId, $dmUserId) {
             $query->where('sender_id', $userId)->where('receiver_id', $dmUserId);
         })
-        ->orWhere(function ($query) use ($userId, $dmUserId) {
-            $query->where('sender_id', $dmUserId)->where('receiver_id', $userId);
-        })
-        ->latest()
-        ->get()
-        ->map(fn($m) => [
-            'id' => $m->id,
-            'sender_id' => $m->sender_id,
-            'content' => $m->content,
-            'created_at' => $m->created_at,
-        ])
-        ->reverse()
-        ->toArray();
+            ->orWhere(function ($query) use ($userId, $dmUserId) {
+                $query->where('sender_id', $dmUserId)->where('receiver_id', $userId);
+            })
+            ->latest()
+            ->get()
+            ->map(fn ($m) => [
+                'id' => $m->id,
+                'sender_id' => $m->sender_id,
+                'content' => $m->content,
+                'created_at' => $m->created_at,
+            ])
+            ->reverse()
+            ->toArray();
 
         // Mark messages as read
         DirectMessage::where('sender_id', $dmUserId)
@@ -214,7 +224,7 @@ class Forum extends Component
     {
         $this->validate(['dmContent' => 'required|string|max:5000']);
 
-        if (!$this->dmWith) {
+        if (! $this->dmWith) {
             return;
         }
 

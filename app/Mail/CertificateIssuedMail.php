@@ -13,9 +13,7 @@ class CertificateIssuedMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public Certificat $certificat)
-    {
-    }
+    public function __construct(public Certificat $certificat) {}
 
     public function envelope(): Envelope
     {

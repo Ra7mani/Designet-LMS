@@ -4,25 +4,27 @@ namespace App\Livewire\Etudiant;
 
 use App\Models\Badge;
 use App\Models\Certificat;
-use App\Models\Inscription;
 use App\Models\Cours;
+use App\Models\Inscription;
 use App\Models\Quiz;
 use App\Services\GamificationService;
 use Livewire\Component;
-use Carbon\Carbon;
 
 class Dashboard extends Component
 {
     public string $search = '';
+
     public array $searchResults = [];
+
     public bool $showNotifications = false;
+
     public array $notifications = [];
 
     public function updatedSearch()
     {
         if (strlen($this->search) >= 2) {
-            $this->searchResults = Cours::where('title', 'like', '%' . $this->search . '%')
-                ->orWhere('description', 'like', '%' . $this->search . '%')
+            $this->searchResults = Cours::where('title', 'like', '%'.$this->search.'%')
+                ->orWhere('description', 'like', '%'.$this->search.'%')
                 ->with('categorie', 'formateur')
                 ->limit(5)
                 ->get()
@@ -40,7 +42,7 @@ class Dashboard extends Component
 
     public function toggleNotifications()
     {
-        $this->showNotifications = !$this->showNotifications;
+        $this->showNotifications = ! $this->showNotifications;
     }
 
     public function markNotificationRead($index)
@@ -48,7 +50,7 @@ class Dashboard extends Component
         if (isset($this->notifications[$index])) {
             $this->notifications[$index]['read'] = true;
 
-            if (!empty($this->notifications[$index]['id'])) {
+            if (! empty($this->notifications[$index]['id'])) {
                 auth()->user()->notifications()
                     ->where('id', $this->notifications[$index]['id'])
                     ->update(['read_at' => now()]);
@@ -98,11 +100,11 @@ class Dashboard extends Component
         $currentLevelLabel = $levelLabels[$level] ?? 'Legendaire';
 
         $stats = [
-            'cours_en_cours'    => $inscriptions->where('status', 'active')->count(),
+            'cours_en_cours' => $inscriptions->where('status', 'active')->count(),
             'lecons_completees' => $totalLessonsCompleted,
-            'total_lecons'      => $totalLessons,
-            'badges'            => $badgesCount,
-            'certificats'       => $certificatsCount,
+            'total_lecons' => $totalLessons,
+            'badges' => $badgesCount,
+            'certificats' => $certificatsCount,
             'completed_courses' => $completedCourses,
         ];
 

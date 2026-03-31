@@ -7,8 +7,8 @@ Route::middleware(['auth', 'verified', 'role:admin'])
     ->name('admin.')
     ->group(function () {
 
-    Route::get('/dashboard', function () {
-        return view('livewire.admin.dashboard');
-    })->name('dashboard');
+        Route::get('/dashboard', function () {
+            return view('livewire.admin.dashboard');
+        })->name('dashboard');
 
-});
+    });

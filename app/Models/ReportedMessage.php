@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ReportedMessage extends Model
 {
     protected $fillable = ['message_id', 'reporter_id', 'reason', 'description', 'status'];
+
     public $timestamps = true;
 
     public function message(): BelongsTo

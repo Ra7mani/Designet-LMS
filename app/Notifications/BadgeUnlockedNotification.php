@@ -11,9 +11,7 @@ class BadgeUnlockedNotification extends Notification
 {
     use Queueable;
 
-    public function __construct(public Badge $badge)
-    {
-    }
+    public function __construct(public Badge $badge) {}
 
     public function via(object $notifiable): array
     {

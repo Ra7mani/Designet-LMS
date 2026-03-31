@@ -2,42 +2,68 @@
 
 namespace App\Livewire\Formateur;
 
-use App\Models\Cours;
-use App\Models\User;
-use App\Models\Inscription;
-use App\Models\Chapitre;
-use App\Models\Paiement;
 use App\Models\Avis;
+use App\Models\Cours;
+use App\Models\DirectMessage;
+use App\Models\ForumMessage;
+use App\Models\Inscription;
+use App\Models\Paiement;
 use App\Models\QuizAttempt;
 use App\Models\Session;
-use Livewire\Component;
-use Livewire\Attributes\Layout;
-use Livewire\Attributes\Computed;
+use App\Models\User;
 use Carbon\Carbon;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
+use Livewire\Component;
 
 #[Layout('layouts.formateur')]
 class Dashboard extends Component
 {
     public $publicCoursesCount = 0;
+
     public $totalStudents = 0;
+
     public $averageRating = 0;
+
     public $monthlyRevenue = 0;
+
     public $totalRevenue = 0;
+
     public $revenuePerStudent = 0;
+
     public $pendingAssignmentsCount = 0;
+
     public $coursesList = [];
+
     public $strugglingStudents = [];
+
     public $topStudents = [];
+
     public $studentTrend = 0;
+
     public $revenueTrend = 0;
+
     public $courseTrend = 0;
-    public $ratingPercentile = "Calculé";
+
+    public $ratingPercentile = 'Calculé';
+
     public $upcomingSessions = [];
+
     public $recentNotifications = [];
+
     public $pendingAssignments = [];
+
     public $mostPopularCourse = [];
+
     public $unreadMessagesCount = 0;
+
     public $activeStudentsThisWeek = 0;
+
+    public $globalStudentProgress = 0;
+
+    public $revenueTrendPercent = 0;
+
+    public $todaysSessions = [];
 
     public function mount()
     {
@@ -50,12 +76,43 @@ class Dashboard extends Component
         if (empty($this->upcomingSessions)) {
             return null;
         }
+
         return $this->upcomingSessions[0] ?? null;
+    }
+
+    #[Computed]
+    public function liveSessionInThirtyMinutes()
+    {
+        $now = Carbon::now();
+        $inThirtyMinutes = $now->copy()->addMinutes(30);
+
+        $session = Session::where('formateur_id', auth()->id())
+            ->where('type', 'live')
+            ->whereBetween('start_time', [$now, $inThirtyMinutes])
+            ->with('cours.inscriptions')
+            ->orderBy('start_time')
+            ->first();
+
+        if (! $session) {
+            return null;
+        }
+
+        return [
+            'id' => $session->id,
+            'title' => $session->title,
+            'course_title' => $session->cours->title ?? 'Cours',
+            'start_time' => $session->start_time,
+            'time' => $session->start_time->format('H:i'),
+            'session_room' => $session->session_room ?? 'Salle virtuelle',
+            'students' => $session->cours->inscriptions->count() ?? 0,
+            'minutes_left' => $now->diffInMinutes($session->start_time),
+        ];
     }
 
     private function loadDashboardData()
     {
         $authUser = auth()->user();
+        $allCourseIds = $authUser->cours()->pluck('id');
         $now = Carbon::now();
         $startOfMonth = $now->copy()->startOfMonth();
         $endOfMonth = $now->copy()->endOfMonth();
@@ -70,45 +127,55 @@ class Dashboard extends Component
             ->get();
 
         // ===== BASIC STATS FROM LOADED DATA =====
-        $this->publicCoursesCount = $courses->where('status', 'published')->count();
-        $this->totalStudents = $courses->sum(fn($c) => $c->inscriptions->count());
-        $this->averageRating = $courses->avg('rating') ?? 0;
+        $this->publicCoursesCount = Cours::where('formateur_id', $authUser->id)
+            ->where('status', 'published')
+            ->count();
+        $this->totalStudents = $allCourseIds->isNotEmpty()
+            ? Inscription::whereIn('cours_id', $allCourseIds)->count()
+            : 0;
+        $this->averageRating = $authUser->cours()->avg('rating') ?? 0;
+        $this->globalStudentProgress = $allCourseIds->isNotEmpty()
+            ? round((float) (Inscription::whereIn('cours_id', $allCourseIds)->avg('progress') ?? 0), 1)
+            : 0;
 
         // ===== MAP COURSES FOR VIEW =====
-        $this->coursesList = $courses->map(fn($c) => [
+        $this->coursesList = $courses->map(fn ($c) => [
             'id' => $c->id,
             'title' => $c->title,
             'students' => $c->inscriptions->count(),
             'rating' => $c->rating ?? 4.8,
             'level' => $c->level,
-            'lessons' => $c->chapitres->sum(fn($ch) => $ch->lecons->count() ?? 0),
+            'lessons' => $c->chapitres->sum(fn ($ch) => $ch->lecons->count() ?? 0),
             'thumbnail' => $c->thumbnail,
             'status' => $c->status,
             'progressPercentage' => min(($c->inscriptions->count() / 10) * 100, 100),
         ])->toArray();
 
         // ===== DYNAMIC REVENUE DATA =====
-        $courseIds = $courses->pluck('id');
+        $courseIds = $allCourseIds;
 
         // Only query if there are courses
         if ($courseIds->isNotEmpty()) {
             // Current month revenue
-            $this->monthlyRevenue = Paiement::whereHas('inscription', fn($q) => $q->whereIn('cours_id', $courseIds))
+            $this->monthlyRevenue = Paiement::whereHas('inscription', fn ($q) => $q->whereIn('cours_id', $courseIds))
                 ->whereBetween('paid_at', [$startOfMonth, $endOfMonth])
                 ->where('status', 'completed')
                 ->sum('amount');
 
             // Last month revenue
-            $lastMonthRevenue = Paiement::whereHas('inscription', fn($q) => $q->whereIn('cours_id', $courseIds))
+            $lastMonthRevenue = Paiement::whereHas('inscription', fn ($q) => $q->whereIn('cours_id', $courseIds))
                 ->whereBetween('paid_at', [$startOfLastMonth, $endOfLastMonth])
                 ->where('status', 'completed')
                 ->sum('amount');
 
             // Calculate revenue trend
-            $this->revenueTrend = max(0, $this->monthlyRevenue - $lastMonthRevenue);
+            $this->revenueTrend = $this->monthlyRevenue - $lastMonthRevenue;
+            $this->revenueTrendPercent = $lastMonthRevenue > 0
+                ? round(($this->revenueTrend / $lastMonthRevenue) * 100, 1)
+                : ($this->monthlyRevenue > 0 ? 100 : 0);
 
             // Total revenue
-            $this->totalRevenue = Paiement::whereHas('inscription', fn($q) => $q->whereIn('cours_id', $courseIds))
+            $this->totalRevenue = Paiement::whereHas('inscription', fn ($q) => $q->whereIn('cours_id', $courseIds))
                 ->where('status', 'completed')
                 ->sum('amount');
 
@@ -117,24 +184,24 @@ class Dashboard extends Component
 
             // ===== DYNAMIC PENDING ASSIGNMENTS =====
             // Count quizzes with pending attempts
-            $this->pendingAssignmentsCount = QuizAttempt::whereHas('quiz', fn($q) => $q->whereIn('cours_id', $courseIds))
-                ->where(function($q) {
+            $this->pendingAssignmentsCount = QuizAttempt::whereHas('quiz', fn ($q) => $q->whereIn('cours_id', $courseIds))
+                ->where(function ($q) {
                     $q->where('status', 'pending')
-                      ->orWhere('status', 'in_progress');
+                        ->orWhere('status', 'in_progress');
                 })
                 ->count();
 
             // ===== PENDING ASSIGNMENTS DETAILS =====
-            $this->pendingAssignments = QuizAttempt::whereHas('quiz', fn($q) => $q->whereIn('cours_id', $courseIds))
+            $this->pendingAssignments = QuizAttempt::whereHas('quiz', fn ($q) => $q->whereIn('cours_id', $courseIds))
                 ->with('user', 'quiz.cours')
-                ->where(function($q) {
+                ->where(function ($q) {
                     $q->where('status', 'pending')
-                      ->orWhere('status', 'in_progress');
+                        ->orWhere('status', 'in_progress');
                 })
                 ->latest()
                 ->limit(3)
                 ->get()
-                ->map(fn($attempt) => [
+                ->map(fn ($attempt) => [
                     'id' => $attempt->id,
                     'student_name' => $attempt->user->name ?? 'Anonyme',
                     'student_avatar' => strtoupper(substr($attempt->user->name ?? 'A', 0, 1)),
@@ -155,48 +222,48 @@ class Dashboard extends Component
                 ->whereBetween('enrolled_at', [$startOfLastMonth, $endOfLastMonth])
                 ->count();
 
-            $this->studentTrend = max(0, $currentMonthStudents - $lastMonthStudents);
+            $this->studentTrend = $currentMonthStudents - $lastMonthStudents;
 
             // ===== STRUGGLING STUDENTS =====
-            $this->strugglingStudents = User::whereHas('inscriptions', function($q) use ($courseIds) {
+            $this->strugglingStudents = User::whereHas('inscriptions', function ($q) use ($courseIds) {
                 $q->whereIn('cours_id', $courseIds)
-                  ->where('progress', '<', 30);
-            })->with('inscriptions')->limit(5)->get()->map(fn($s) => [
+                    ->where('progress', '<', 30);
+            })->with('inscriptions')->limit(5)->get()->map(fn ($s) => [
                 'id' => $s->id,
                 'name' => $s->name,
                 'progress' => $s->inscriptions->avg('progress') ?? 0,
             ])->toArray();
 
             // ===== TOP STUDENTS =====
-            $this->topStudents = User::whereHas('inscriptions', function($q) use ($courseIds) {
+            $this->topStudents = User::whereHas('inscriptions', function ($q) use ($courseIds) {
                 $q->whereIn('cours_id', $courseIds);
             })
-            ->with('inscriptions')
-            ->orderByDesc(
-                Inscription::select('progress')
-                    ->whereColumn('etudiant_id', 'users.id')
-                    ->whereIn('cours_id', $courseIds)
-                    ->limit(1)
-            )
-            ->limit(3)
-            ->get()
-            ->map(fn($s) => [
-                'id' => $s->id,
-                'name' => $s->name,
-                'avatar' => strtoupper(substr($s->name, 0, 2)),
-                'progress' => intval($s->inscriptions->avg('progress') ?? 0),
-                'lessons' => intval($s->inscriptions->sum('completed_lessons') ?? 0),
-            ])->toArray();
+                ->with('inscriptions')
+                ->orderByDesc(
+                    Inscription::select('progress')
+                        ->whereColumn('etudiant_id', 'users.id')
+                        ->whereIn('cours_id', $courseIds)
+                        ->limit(1)
+                )
+                ->limit(3)
+                ->get()
+                ->map(fn ($s) => [
+                    'id' => $s->id,
+                    'name' => $s->name,
+                    'avatar' => strtoupper(substr($s->name, 0, 2)),
+                    'progress' => intval($s->inscriptions->avg('progress') ?? 0),
+                    'lessons' => intval($s->inscriptions->sum('completed_lessons') ?? 0),
+                ])->toArray();
 
             // ===== UPCOMING SESSIONS =====
-            $this->upcomingSessions = Session::where('formateur_id', $authUser->id)
+            $allUpcomingSessions = Session::where('formateur_id', $authUser->id)
                 ->whereIn('cours_id', $courseIds)
                 ->where('start_time', '>', $now)
                 ->where('type', 'live')
                 ->orderBy('start_time')
-                ->limit(5)
+                ->limit(8)
                 ->get()
-                ->map(fn($session) => [
+                ->map(fn ($session) => [
                     'id' => $session->id,
                     'title' => $session->title,
                     'course_title' => $session->cours->title ?? 'Cours',
@@ -207,11 +274,22 @@ class Dashboard extends Component
                     'session_room' => $session->session_room ?? 'Salle virtuelle',
                     'students' => $session->cours->inscriptions->count() ?? 0,
                     'type' => $session->type,
-                ])
+                ]);
+
+            $this->todaysSessions = $allUpcomingSessions
+                ->filter(fn ($session) => $session['start_time']->isToday())
+                ->take(3)
+                ->values()
+                ->toArray();
+
+            $this->upcomingSessions = $allUpcomingSessions
+                ->filter(fn ($session) => ! $session['start_time']->isToday())
+                ->take(5)
+                ->values()
                 ->toArray();
 
             // ===== MOST POPULAR COURSE =====
-            $mostPopular = $courses->sortByDesc(fn($c) => $c->inscriptions->count())->first();
+            $mostPopular = $courses->sortByDesc(fn ($c) => $c->inscriptions->count())->first();
             $this->mostPopularCourse = $mostPopular ? [
                 'id' => $mostPopular->id,
                 'title' => $mostPopular->title,
@@ -229,26 +307,86 @@ class Dashboard extends Component
             // ===== UNREAD MESSAGES COUNT =====
             // For now, set to a reasonable number based on pending assignments
             // This can be connected to a Message model later
-            $this->unreadMessagesCount = max(0, $this->pendingAssignmentsCount);
+            $this->unreadMessagesCount = DirectMessage::where('receiver_id', $authUser->id)
+                ->where('is_read', false)
+                ->count();
 
             // ===== RECENT NOTIFICATIONS =====
-            $this->recentNotifications = Avis::whereHas('inscription', function($q) use ($courseIds) {
+            $recentReviews = Avis::whereHas('inscription', function ($q) use ($courseIds) {
                 $q->whereIn('cours_id', $courseIds);
             })
-            ->with('inscription.etudiant', 'inscription.cours')
-            ->latest()
-            ->limit(5)
-            ->get()
-            ->map(fn($review) => [
-                'id' => $review->id,
-                'user_name' => $review->inscription->etudiant->name ?? 'Utilisateur',
-                'user_avatar' => strtoupper(substr($review->inscription->etudiant->name ?? 'U', 0, 1)),
-                'message' => 'a laissé un avis ' . $review->rating . ' étoiles',
-                'course_title' => $review->inscription->cours->title,
-                'created_at' => $review->created_at->diffForHumans(),
-                'type' => 'review',
-            ])
-            ->toArray();
+                ->with('inscription.etudiant', 'inscription.cours')
+                ->latest()
+                ->limit(4)
+                ->get()
+                ->map(fn ($review) => [
+                    'id' => $review->id,
+                    'user_name' => $review->inscription->etudiant->name ?? 'Utilisateur',
+                    'user_avatar' => strtoupper(substr($review->inscription->etudiant->name ?? 'U', 0, 1)),
+                    'message' => 'a laissé un avis '.$review->rating.' étoiles',
+                    'course_title' => $review->inscription->cours->title,
+                    'created_at' => $review->created_at->diffForHumans(),
+                    'sort_at' => $review->created_at->timestamp,
+                    'type' => 'review',
+                ]);
+
+            $recentAssignments = QuizAttempt::whereHas('quiz', fn ($q) => $q->whereIn('cours_id', $courseIds))
+                ->where('status', 'completed')
+                ->with('user', 'quiz.cours')
+                ->latest('completed_at')
+                ->limit(4)
+                ->get()
+                ->map(fn ($attempt) => [
+                    'id' => 'assignment-'.$attempt->id,
+                    'user_name' => $attempt->user->name ?? 'Étudiant',
+                    'user_avatar' => strtoupper(substr($attempt->user->name ?? 'E', 0, 1)),
+                    'message' => 'a rendu le devoir "'.($attempt->quiz->title ?? 'Quiz').'"',
+                    'course_title' => $attempt->quiz->cours->title ?? 'Cours',
+                    'created_at' => ($attempt->completed_at ?? $attempt->updated_at)->diffForHumans(),
+                    'sort_at' => ($attempt->completed_at ?? $attempt->updated_at)->timestamp,
+                    'type' => 'assignment',
+                ]);
+
+            $recentQuestions = ForumMessage::whereHas('channel', function ($q) use ($courseIds) {
+                $q->whereIn('cours_id', $courseIds);
+            })
+                ->where('user_id', '!=', $authUser->id)
+                ->with('user', 'channel.cours')
+                ->latest()
+                ->limit(4)
+                ->get()
+                ->map(fn ($question) => [
+                    'id' => 'question-'.$question->id,
+                    'user_name' => $question->user->name ?? 'Étudiant',
+                    'user_avatar' => strtoupper(substr($question->user->name ?? 'E', 0, 1)),
+                    'message' => 'a posé une question: "'.mb_strimwidth($question->content, 0, 42, '...').'"',
+                    'course_title' => $question->channel->cours->title ?? 'Forum',
+                    'created_at' => $question->created_at->diffForHumans(),
+                    'sort_at' => $question->created_at->timestamp,
+                    'type' => 'question',
+                ]);
+
+            $this->recentNotifications = $recentReviews
+                ->concat($recentAssignments)
+                ->concat($recentQuestions)
+                ->sortByDesc('sort_at')
+                ->take(8)
+                ->map(function ($activity) {
+                    unset($activity['sort_at']);
+
+                    return $activity;
+                })
+                ->values()
+                ->toArray();
+
+            $unreadForumMessages = ForumMessage::whereHas('channel', function ($q) use ($courseIds) {
+                $q->whereIn('cours_id', $courseIds);
+            })
+                ->where('is_read', false)
+                ->where('user_id', '!=', $authUser->id)
+                ->count();
+
+            $this->unreadMessagesCount += $unreadForumMessages;
         }
 
         // ===== COURSE TRENDS =====
@@ -270,15 +408,15 @@ class Dashboard extends Component
 
         // Find formateurs with same or better rating (from their courses)
         $betterRatingCount = User::where('role', 'formateur')
-            ->whereHas('cours', function($q) {
+            ->whereHas('cours', function ($q) {
                 $q->where('status', 'published');
             })
             ->get()
-            ->filter(fn($u) => $u->cours->avg('rating') ?? 0 > $myAverageRating)
+            ->filter(fn ($u) => $u->cours->avg('rating') ?? $myAverageRating < 0)
             ->count();
 
         $totalFormateurs = User::where('role', 'formateur')
-            ->whereHas('cours', function($q) {
+            ->whereHas('cours', function ($q) {
                 $q->where('status', 'published');
             })
             ->count();
@@ -286,9 +424,9 @@ class Dashboard extends Component
         // Calculate this formateur's percentile
         if ($myAverageRating > 0 && $totalFormateurs > 0) {
             $percentileValue = round(($betterRatingCount / $totalFormateurs) * 100);
-            $this->ratingPercentile = "Top " . max(1, (100 - $percentileValue)) . "%";
+            $this->ratingPercentile = 'Top '.max(1, (100 - $percentileValue)).'%';
         } else {
-            $this->ratingPercentile = "En amélioration";
+            $this->ratingPercentile = 'En amélioration';
         }
     }
 
@@ -297,4 +435,3 @@ class Dashboard extends Component
         return view('livewire.formateur.dashboard');
     }
 }
-

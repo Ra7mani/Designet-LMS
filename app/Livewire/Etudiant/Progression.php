@@ -2,12 +2,12 @@
 
 namespace App\Livewire\Etudiant;
 
-use App\Models\Inscription;
-use App\Models\Certificat;
 use App\Models\Badge;
+use App\Models\Certificat;
+use App\Models\Inscription;
 use App\Models\User;
-use Livewire\Component;
 use Carbon\Carbon;
+use Livewire\Component;
 
 class Progression extends Component
 {
@@ -110,8 +110,8 @@ class Progression extends Component
         $stats = [
             'lessons_completed' => $periodLessonsCompleted,
             'total_lessons' => $periodTotalLessons,
-            'total_hours' => $inscriptions->sum(fn($i) => $i->cours->chapitres->flatMap->lecons->sum('duration')) / 60,
-            'quizzes_count' => $inscriptions->sum(fn($i) => $i->cours->quizzes->count()),
+            'total_hours' => $inscriptions->sum(fn ($i) => $i->cours->chapitres->flatMap->lecons->sum('duration')) / 60,
+            'quizzes_count' => $inscriptions->sum(fn ($i) => $i->cours->quizzes->count()),
             'avg_progress' => $inscriptions->count() > 0 ? $inscriptions->avg('progress') : 0,
             'certificates_count' => $certificatsCount,
             'badges_count' => $badgesCount,
@@ -292,7 +292,7 @@ class Progression extends Component
         foreach ($inscriptions as $inscription) {
             if ($inscription->updated_at) {
                 $dateKey = $inscription->updated_at->format('Y-m-d');
-                if (!isset($activityByDate[$dateKey])) {
+                if (! isset($activityByDate[$dateKey])) {
                     $activityByDate[$dateKey] = 0;
                 }
                 $activityByDate[$dateKey]++;
@@ -322,7 +322,7 @@ class Progression extends Component
             }
 
             $date = Carbon::now()->subDays($i * $groupSize);
-            $dayLabel = $isToday ? "Auj." : $days[$date->dayOfWeek];
+            $dayLabel = $isToday ? 'Auj.' : $days[$date->dayOfWeek];
 
             // Add some base activity if user has active courses
             $baseActivity = $inscriptions->where('status', 'active')->count();
@@ -347,7 +347,7 @@ class Progression extends Component
 
         foreach ($inscriptions as $inscription) {
             $categoryName = $inscription->cours->categorie?->name ?? 'General';
-            if (!isset($categoryProgress[$categoryName])) {
+            if (! isset($categoryProgress[$categoryName])) {
                 $categoryProgress[$categoryName] = ['total' => 0, 'count' => 0];
             }
             $categoryProgress[$categoryName]['total'] += $inscription->progress;
@@ -370,7 +370,7 @@ class Progression extends Component
         }
 
         // Trier par progression
-        usort($skills, fn($a, $b) => $b['value'] - $a['value']);
+        usort($skills, fn ($a, $b) => $b['value'] - $a['value']);
 
         return array_slice($skills, 0, 6);
     }

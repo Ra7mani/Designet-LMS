@@ -12,6 +12,7 @@ class Quiz extends Model
 
     protected $fillable = [
         'cours_id',
+        'chapitre_id',
         'title',
         'duration',
         'passing_score',
@@ -28,6 +29,11 @@ class Quiz extends Model
         return $this->belongsTo(Cours::class);
     }
 
+    public function chapitre()
+    {
+        return $this->belongsTo(Chapitre::class);
+    }
+
     public function questions()
     {
         return $this->hasMany(Question::class)->orderBy('order');
@@ -41,6 +47,7 @@ class Quiz extends Model
     public function userAttempts($userId = null)
     {
         $userId = $userId ?? auth()->id();
+
         return $this->attempts()->where('user_id', $userId);
     }
 

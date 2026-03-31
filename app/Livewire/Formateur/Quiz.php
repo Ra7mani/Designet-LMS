@@ -4,9 +4,9 @@ namespace App\Livewire\Formateur;
 
 use App\Models\Quiz as QuizModel;
 use App\Models\QuizAttempt;
-use Livewire\Component;
-use Livewire\Attributes\Layout;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
+use Livewire\Component;
 use Livewire\WithPagination;
 
 #[Layout('layouts.formateur')]
@@ -15,18 +15,24 @@ class Quiz extends Component
     use WithPagination;
 
     public $filter = 'tous';
+
     public $selectedQuizId = null;
+
     public $correctionModalOpen = false;
+
     public $createQuizModalOpen = false;
+
     public $correctionComment = '';
+
     public $correctionScore = 0;
+
     public $selectedSubmission = null;
 
     #[Computed]
     public function quizzes()
     {
         return QuizModel::whereIn('cours_id', auth()->user()->cours()->pluck('id'))
-            ->when($this->filter !== 'tous', fn($q) => $q->where('type', $this->filter))
+            ->when($this->filter !== 'tous', fn ($q) => $q->where('type', $this->filter))
             ->with('questions', 'attempts')
             ->paginate(9);
     }
@@ -91,7 +97,7 @@ class Quiz extends Component
                 'grader_comment' => $this->correctionComment,
             ]);
 
-            session()->flash('success', '✅ Correction envoyée ! Note : ' . $this->correctionScore . '/100');
+            session()->flash('success', '✅ Correction envoyée ! Note : '.$this->correctionScore.'/100');
             $this->closeCorrection();
         }
     }
@@ -120,6 +126,7 @@ class Quiz extends Component
             'exam' => 'var(--peach)',
             'devoir' => 'var(--yel)',
         ];
+
         return $colors[$typeStr] ?? 'var(--vxl)';
     }
 
@@ -131,6 +138,7 @@ class Quiz extends Component
             'exam' => 'var(--peachd)',
             'devoir' => 'var(--yeld)',
         ];
+
         return $colors[$typeStr] ?? 'var(--v)';
     }
 
@@ -142,6 +150,7 @@ class Quiz extends Component
             'exam' => '📋',
             'devoir' => '🎭',
         ];
+
         return $icons[$typeStr] ?? '📝';
     }
 

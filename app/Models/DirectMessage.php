@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class DirectMessage extends Model
 {
     protected $fillable = ['sender_id', 'receiver_id', 'content', 'is_read'];
+
     protected $casts = ['is_read' => 'boolean'];
 
     public function sender(): BelongsTo
@@ -20,4 +21,3 @@ class DirectMessage extends Model
         return $this->belongsTo(User::class, 'receiver_id');
     }
 }
-
