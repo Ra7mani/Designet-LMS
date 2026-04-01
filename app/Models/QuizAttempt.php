@@ -23,13 +23,18 @@ class QuizAttempt extends Model
         'xp_earned',
         'started_at',
         'completed_at',
+        'is_graded',
+        'grader_comment',
+        'graded_at',
     ];
 
     protected $casts = [
         'answers' => 'array',
         'passed' => 'boolean',
+        'is_graded' => 'boolean',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
+        'graded_at' => 'datetime',
     ];
 
     public function quiz()

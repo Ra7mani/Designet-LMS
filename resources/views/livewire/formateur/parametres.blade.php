@@ -3,10 +3,11 @@
 /* HEADER */
 .params-header {
     padding: 30px;
-    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
     color: white;
-    border-radius: 8px;
-    margin-bottom: 30px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    box-shadow: 0 12px 32px rgba(13, 148, 136, .25);
 }
 .params-header h1 {
     font-size: 24px;
@@ -22,16 +23,12 @@
 
 /* TABS LAYOUT */
 .params-tabs {
-    display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: 24px;
+    display: block;
 }
 
 /* TAB NAV */
 .params-nav {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    display: none;
 }
 .params-nav button {
     background: none;
@@ -53,9 +50,9 @@
     color: #374151;
 }
 .params-nav button.active {
-    background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(109, 40, 217, 0.05));
-    color: #7c3aed;
-    border-left: 3px solid #7c3aed;
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.10), rgba(20, 184, 166, 0.06));
+    color: #0d9488;
+    border-left: 3px solid #0d9488;
     padding-left: 13px;
 }
 
@@ -64,6 +61,9 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
+    max-height: 72vh;
+    overflow-y: auto;
+    padding-right: 6px;
 }
 
 /* CARD */
@@ -121,8 +121,8 @@
 .form-group select:focus,
 .form-group textarea:focus {
     outline: none;
-    border-color: #7c3aed;
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+    border-color: #0d9488;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
 }
 .form-group textarea {
     resize: vertical;
@@ -185,7 +185,7 @@
     transition: all .3s;
 }
 .toggle-switch input:checked + .toggle-slider {
-    background: #7c3aed;
+    background: #0d9488;
 }
 .toggle-switch input:checked + .toggle-slider::before {
     transform: translateX(20px);
@@ -194,13 +194,16 @@
 /* PASSWORD GROUP */
 .password-group {
     position: relative;
+    width: 100%;
 }
 .password-group input {
-    padding-right: 40px !important;
+    width: 100%;
+    min-height: 44px;
+    padding-right: 44px !important;
 }
 .eye-btn {
     position: absolute;
-    right: 12px;
+    right: 10px;
     top: 50%;
     transform: translateY(-50%);
     background: none;
@@ -211,12 +214,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
 }
 .eye-btn svg {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     stroke: currentColor;
 }
 
@@ -240,13 +244,13 @@
     gap: 6px;
 }
 .btn-primary {
-    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
     color: white;
-    box-shadow: 0 4px 12px rgba(124, 58, 237, .25);
+    box-shadow: 0 4px 12px rgba(13, 148, 136, .25);
 }
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(124, 58, 237, .35);
+    box-shadow: 0 6px 16px rgba(13, 148, 136, .35);
 }
 .btn-danger {
     background: white;
@@ -323,14 +327,6 @@
     box-sizing: border-box;
 }
 
-/* DANGER ZONE */
-.danger-card {
-    border-color: #fca5a5 !important;
-}
-.danger-card .params-card-title {
-    color: #dc2626;
-}
-
 @media (max-width: 768px) {
     .params-tabs {
         grid-template-columns: 1fr;
@@ -353,125 +349,48 @@
 
 <!-- CONTENT -->
 <div class="params-tabs">
-    <!-- NAV -->
-    <nav class="params-nav">
-        <button type="button" wire:click="$set('activeSection', 'account')" class="@if($activeSection === 'account') active @endif">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            Compte
-        </button>
-        <button type="button" wire:click="$set('activeSection', 'notifications')" class="@if($activeSection === 'notifications') active @endif">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            Notifications
-        </button>
-        <button type="button" wire:click="$set('activeSection', 'security')" class="@if($activeSection === 'security') active @endif">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            Sécurité
-        </button>
-    </nav>
-
-    <!-- CONTENT -->
     <div class="params-content">
-        <!-- ACCOUNT TAB -->
-        @if($activeSection === 'account')
-            <div class="params-card">
-                <div class="params-card-title">Informations du Compte</div>
-                <div class="params-card-desc">Mets à jour tes informations personnelles</div>
+        <div class="params-card">
+            <div class="params-card-title">Compte</div>
+            <div class="params-card-desc">Informations personnelles du compte</div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Prénom</label>
-                        <input type="text" wire:model.live="firstName" placeholder="Ton prénom" />
-                        @error('firstName') <span class="form-error">{{ $message }}</span> @enderror
-                    </div>
-                    <div class="form-group">
-                        <label>Nom</label>
-                        <input type="text" wire:model.live="lastName" placeholder="Ton nom" />
-                        @error('lastName') <span class="form-error">{{ $message }}</span> @enderror
-                    </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Prénom</label>
+                    <input type="text" wire:model.live="firstName" placeholder="Ton prénom" />
+                    @error('firstName') <span class="form-error">{{ $message }}</span> @enderror
                 </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" wire:model.live="email" placeholder="ton@email.com" />
-                        @error('email') <span class="form-error">{{ $message }}</span> @enderror
-                    </div>
-                    <div class="form-group">
-                        <label>Téléphone</label>
-                        <input type="tel" wire:model.live="phone" placeholder="+212 6XX XXX XXX" />
-                    </div>
-                </div>
-
-                <div class="form-row full">
-                    <div class="form-group">
-                        <label>Bio/À propos</label>
-                        <textarea wire:model.live="bio" placeholder="Présente-toi et partage ton expérience..."></textarea>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Langue</label>
-                        <select wire:model.live="language">
-                            <option value="fr">Français</option>
-                            <option value="en">English</option>
-                            <option value="ar">العربية</option>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label>Nom</label>
+                    <input type="text" wire:model.live="lastName" placeholder="Ton nom" />
+                    @error('lastName') <span class="form-error">{{ $message }}</span> @enderror
                 </div>
             </div>
 
-        <!-- NOTIFICATIONS TAB -->
-        @elseif($activeSection === 'notifications')
-            <div class="params-card">
-                <div class="params-card-title">Préférences de Notification</div>
-                <div class="params-card-desc">Configure comment tu veux être notifié</div>
-
-                <div class="toggle-group">
-                    <div class="toggle-row">
-                        <div class="toggle-info">
-                            <h4>Notifications par email</h4>
-                            <p>Reçois les mises à jour importantes</p>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" wire:model.live="email_notifications" />
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" wire:model.live="email" placeholder="ton@email.com" />
+                    @error('email') <span class="form-error">{{ $message }}</span> @enderror
                 </div>
-
-                <div class="toggle-group">
-                    <div class="toggle-row">
-                        <div class="toggle-info">
-                            <h4>Rappels de cours</h4>
-                            <p>Rappels pour gérer tes cours</p>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" wire:model.live="course_reminders" />
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="toggle-group">
-                    <div class="toggle-row">
-                        <div class="toggle-info">
-                            <h4>Messages des étudiants</h4>
-                            <p>Sois notifié des messages reçus</p>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" wire:model.live="student_messages" />
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
+                <div class="form-group">
+                    <label>Téléphone</label>
+                    <input type="tel" wire:model.live="phone" placeholder="+212 6XX XXX XXX" />
                 </div>
             </div>
 
-        <!-- SECURITY TAB -->
-        @elseif($activeSection === 'security')
-            <div class="params-card">
-                <div class="params-card-title">Sécurité du Compte</div>
-                <div class="params-card-desc">Gère tes paramètres de sécurité</div>
+            <div class="form-row full">
+                <div class="form-group">
+                    <label>Bio/À propos</label>
+                    <textarea wire:model.live="bio" placeholder="Présente-toi et partage ton expérience..."></textarea>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="params-card">
+            <div class="params-card-title">Sécurité</div>
+            <div class="params-card-desc">Gestion du mot de passe</div>
 
                 <h4 style="font-size: 14px; font-weight: 600; color: #1f2937; margin-top: 20px; margin-bottom: 16px;">Changer le mot de passe</h4>
 
@@ -533,17 +452,14 @@
                         🔒 Mettre à jour le mot de passe
                     </button>
                 </div>
-            </div>
-        @endif
+        </div>
 
-        <!-- DANGER ZONE -->
-        <div class="params-card danger-card">
-            <div class="params-card-title">⚠️ Zone de Danger</div>
-            <div class="params-card-desc">Actions irréversibles sur ton compte</div>
+        <div class="params-card">
+            <div class="params-card-title">Données personnelles</div>
+            <div class="params-card-desc">Exporter ou supprimer ton compte</div>
             <div class="btn-group">
-                <button type="button" wire:click="openDeleteModal" class="btn btn-danger">
-                    🗑️ Supprimer mon compte
-                </button>
+                <button type="button" wire:click="requestDataExport" class="btn btn-ghost">📥 Exporter mes données</button>
+                <button type="button" wire:click="openDeleteModal" class="btn btn-danger">🗑️ Supprimer le compte</button>
             </div>
         </div>
     </div>
@@ -558,7 +474,7 @@
             <p style="font-size: 12px; color: #6b7280; margin-bottom: 16px;">Pour confirmer, veuillez taper votre adresse email:</p>
             <input type="text" wire:model.live="deleteConfirmationText" placeholder="{{ auth()->user()->email }}" />
             <div class="btn-group" style="margin-top: 16px;">
-                <button type="button" wire:click="deleteAccount" :disabled="deleteConfirmationText !== '{{ auth()->user()->email }}'" class="btn btn-danger" style="flex: 1;">
+                <button type="button" wire:click="deleteAccount" @disabled($deleteConfirmationText !== auth()->user()->email) class="btn btn-danger" style="flex: 1;">
                     Supprimer définitivement
                 </button>
                 <button type="button" wire:click="$set('showDeleteModal', false)" class="btn btn-ghost" style="flex: 1;">

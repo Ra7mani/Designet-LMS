@@ -51,6 +51,9 @@
         <div class="tab-item @if($filter === 'actifs') active @endif" wire:click="$set('filter', 'actifs')" style="cursor:pointer;">
             Actifs <span style="opacity:.7">({{ $this->activeStudents }})</span>
         </div>
+        <div class="tab-item @if($filter === 'inactifs') active @endif" wire:click="$set('filter', 'inactifs')" style="cursor:pointer;">
+            Inactifs
+        </div>
         <div class="tab-item @if($filter === 'difficulte') active @endif" wire:click="$set('filter', 'difficulte')" style="cursor:pointer;">
             En difficulté <span style="opacity:.7">({{ $this->strugglingStudents }})</span>
         </div>
@@ -87,6 +90,11 @@
                     <option value="recent">Trier par activité</option>
                     <option value="creation">Par création</option>
                 </select>
+                <select class="filter-select" wire:model.live="inactiveDaysThreshold">
+                    <option value="7">Inactif depuis 7j+</option>
+                    <option value="14">Inactif depuis 14j+</option>
+                    <option value="30">Inactif depuis 30j+</option>
+                </select>
             </div>
 
             <!-- STUDENTS LIST -->
@@ -104,6 +112,7 @@
                         $initials = strtoupper(implode('', array_map(fn($w) => $w[0], explode(' ', $student->name))));
                         $lastActive = $student->updated_at?->diffForHumans() ?? 'Jamais';
                         $status = $student->updated_at?->gt(now()->subDays(7)) ? 'actif' : 'inactif';
+                        $inactiveDays = $student->updated_at ? $student->updated_at->diffInDays(now()) : 999;
                     @endphp
                     <div class="student-row-detail @if($selectedStudentId === $student->id) selected @endif"
                          wire:click="selectStudent({{ $student->id }})"
@@ -140,6 +149,9 @@
                                     ✕ Inactif
                                 @endif
                             </span>
+                            @if($inactiveDays >= (int) $inactiveDaysThreshold)
+                                <button class="btn btn-sm btn-outline" wire:click.stop="sendReminder({{ $student->id }})">🔔 Relancer</button>
+                            @endif
                         </div>
                     </div>
                 @empty
@@ -198,6 +210,11 @@
                     <div style="padding:16px;display:flex;flex-direction:column;gap:8px;">
                         <a href="{{ route('formateur.forum') }}" class="btn btn-primary" style="width:100%;justify-content:center;text-decoration:none;">💬 Envoyer un message</a>
                         <button class="btn btn-outline" style="width:100%;justify-content:center;">📊 Rapport complet</button>
+                        <div class="card" style="padding:10px;background:var(--bg);">
+                            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Message privé rapide</div>
+                            <textarea class="form-input" wire:model.live="messageText" placeholder="Écrire un message..." style="min-height:70px;"></textarea>
+                            <button class="btn btn-sm btn-primary" style="margin-top:8px;width:100%;" wire:click="sendMessageToSelectedStudent">Envoyer</button>
+                        </div>
                     </div>
                 </div>
                 <div class="dp-card card-p">
@@ -223,6 +240,34 @@
                 </div>
             </div>
         @endif
+    </div>
+
+    <div class="card card-p" style="margin-top:22px;">
+        <div class="card-title" style="margin-bottom:10px;">📝 Devoirs / Soumissions en attente de correction</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+            @forelse($this->pendingSubmissions as $attempt)
+                <div style="padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);">
+                    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;">
+                        <div style="font-size:13px;">
+                            <strong>{{ $attempt->user->name ?? 'Étudiant' }}</strong>
+                            · {{ $attempt->quiz->title ?? 'Devoir' }}
+                            · {{ $attempt->quiz->cours->title ?? 'Cours' }}
+                        </div>
+                        <button class="btn btn-sm btn-outline" wire:click="startGrading({{ $attempt->id }})">Noter</button>
+                    </div>
+
+                    @if($selectedAttemptId === $attempt->id)
+                        <div style="margin-top:8px;display:grid;grid-template-columns:120px 1fr auto;gap:8px;align-items:center;">
+                            <input type="number" min="0" max="100" class="form-input" wire:model.live="gradeScore" placeholder="Note /100"/>
+                            <input type="text" class="form-input" wire:model.live="feedbackText" placeholder="Feedback formateur"/>
+                            <button class="btn btn-sm btn-primary" wire:click="submitGrade">Valider</button>
+                        </div>
+                    @endif
+                </div>
+            @empty
+                <div style="padding:14px;color:var(--muted);text-align:center;">Aucune soumission en attente.</div>
+            @endforelse
+        </div>
     </div>
 </div>
 

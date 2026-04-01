@@ -1,4 +1,4 @@
-<div>
+<div wire:poll.30s>
   <style>
     .plan-layout{display:grid;grid-template-columns:1fr 320px;gap:22px;align-items:start;}
     .cal-card{background:var(--card);border-radius:var(--r);border:1.5px solid var(--border);box-shadow:var(--sh);padding:24px;}
@@ -17,6 +17,10 @@
     .cd.has-live::after{content:'';position:absolute;bottom:4px;width:5px;height:5px;border-radius:50%;background:var(--v);}
     .cd.has-exam{background:rgba(220,38,38,.1);color:var(--peachd);font-weight:700;}
     .cd.has-exam::after{content:'';position:absolute;bottom:4px;width:5px;height:5px;border-radius:50%;background:var(--peachd);}
+    .cd.has-office{background:rgba(5,150,105,.1);color:var(--mintd);font-weight:700;}
+    .cd.has-office::after{content:'';position:absolute;bottom:4px;width:5px;height:5px;border-radius:50%;background:var(--mintd);}
+    .cd.has-seminar{background:rgba(14,165,233,.1);color:var(--skyd);font-weight:700;}
+    .cd.has-seminar::after{content:'';position:absolute;bottom:4px;width:5px;height:5px;border-radius:50%;background:var(--skyd);}
     .cd.today{background:var(--vgrad);color:#fff;font-weight:800;box-shadow:0 4px 12px rgba(13,148,136,.35);}
     .cd.today::after{background:#fff;}
     .cal-legend{display:flex;gap:14px;margin-top:16px;flex-wrap:wrap;}
@@ -45,6 +49,12 @@
   <div style="flex:1;margin-bottom:40px;">
     <h1 style="font-size:24px;font-weight:800;margin-bottom:8px;">📅 Planning & Sessions Live</h1>
     <p style="color:var(--muted);">{{ \Carbon\Carbon::now()->format('F Y') }} · {{ count($this->upcomingSessions()) }} sessions planifiées</p>
+  </div>
+
+  <div class="tab-bar" style="margin-bottom:18px;">
+    <div class="tab-item @class(['active' => $this->currentTab === 'month'])" wire:click="switchTab('month')">Mois</div>
+    <div class="tab-item @class(['active' => $this->currentTab === 'week'])" wire:click="switchTab('week')">Semaine</div>
+    <div class="tab-item @class(['active' => $this->currentTab === 'list'])" wire:click="switchTab('list')">Liste</div>
   </div>
 
   <!-- STATS -->
@@ -91,6 +101,7 @@
   </div>
   @endif
 
+  @if($this->currentTab === 'month')
   <div class="plan-layout fu fu2">
     <!-- CALENDAR & SESSIONS -->
     <div>
@@ -143,8 +154,10 @@
             for($d = 1; $d <= $lastDayOfMonth->day; $d++) {
               $day = \Carbon\Carbon::createFromDate($this->currentYear, $this->currentMonth, $d);
               $isToday = $day->isToday();
+              $eventType = $this->monthEventsByDay[$d]['type'] ?? null;
+              $hasEventClass = $eventType ? 'has-'.$eventType : '';
           @endphp
-            <div class="cd @if($isToday) today @endif">{{ $d }}</div>
+            <div class="cd @if($isToday) today @elseif($hasEventClass) {{ $hasEventClass }} @endif" title="{{ $this->monthEventsByDay[$d]['count'] ?? 0 }} session(s)">{{ $d }}</div>
           @php
             }
 
@@ -178,6 +191,7 @@
               <button class="btn btn-primary btn-sm" wire:click.stop="launchSession({{ $session['id'] }})">▶️ Lancer</button>
               <button class="btn btn-ghost btn-sm" wire:click.stop="sendReminder({{ $session['id'] }})">📧 Rappel</button>
               <button class="btn btn-outline btn-sm" wire:click.stop="editSession({{ $session['id'] }})">✏️</button>
+              <button class="btn btn-outline btn-sm" wire:click.stop="deleteSession({{ $session['id'] }})">🗑️</button>
             </div>
           </div>
           @endforeach
@@ -250,9 +264,61 @@
       </div>
     </div>
   </div>
+  @elseif($this->currentTab === 'week')
+  <div class="card card-p">
+    <div class="sec-hdr" style="margin-bottom:16px;">
+      <span class="sec-title">📅 Sessions de la semaine</span>
+    </div>
+    @forelse($this->weekSessions() as $session)
+      <div class="session-card {{ $session['type'] }}-type">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <div>
+            <div class="sc-title">{{ $session['title'] }}</div>
+            <div class="sc-time">{{ \Carbon\Carbon::parse($session['start_iso'])->format('D d M H:i') }}</div>
+            <div class="sc-meta">{{ $session['meta'] }}</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary btn-sm" wire:click="launchSession({{ $session['id'] }})">▶️</button>
+            <button class="btn btn-outline btn-sm" wire:click="openSessionModal({{ $session['id'] }})">👁️</button>
+            <button class="btn btn-ghost btn-sm" wire:click="editSession({{ $session['id'] }})">✏️</button>
+          </div>
+        </div>
+      </div>
+    @empty
+      <div style="text-align:center;color:var(--muted);padding:24px 0;">Aucune session cette semaine.</div>
+    @endforelse
+  </div>
+  @else
+  <div class="card card-p">
+    <div class="sec-hdr" style="margin-bottom:16px;">
+      <span class="sec-title">🗂️ Toutes les sessions</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      @forelse($this->listSessions() as $session)
+        <div style="border:1px solid var(--border);border-radius:10px;padding:12px;display:grid;grid-template-columns:180px 1fr 140px 130px 220px;gap:10px;align-items:center;">
+          <div style="font-size:12px;color:var(--txt);">{{ \Carbon\Carbon::parse($session['start_iso'])->format('d/m/Y H:i') }}</div>
+          <div>
+            <div style="font-weight:700;font-size:13px;color:var(--txt);">{{ $session['title'] }}</div>
+            <div style="font-size:11px;color:var(--muted);">{{ $session['course'] }}</div>
+          </div>
+          <div style="font-size:12px;">{{ ucfirst($session['type']) }}</div>
+          <div style="font-size:12px;">👥 {{ $session['enrolled'] }}</div>
+          <div style="display:flex;gap:6px;justify-content:flex-end;">
+            <button class="btn btn-primary btn-sm" wire:click="launchSession({{ $session['id'] }})">▶️</button>
+            <button class="btn btn-outline btn-sm" wire:click="openSessionModal({{ $session['id'] }})">👁️</button>
+            <button class="btn btn-ghost btn-sm" wire:click="editSession({{ $session['id'] }})">✏️</button>
+            <button class="btn btn-outline btn-sm" wire:click="deleteSession({{ $session['id'] }})">🗑️</button>
+          </div>
+        </div>
+      @empty
+        <div style="text-align:center;color:var(--muted);padding:24px 0;">Aucune session trouvée.</div>
+      @endforelse
+    </div>
+  </div>
+  @endif
 
   <!-- MODAL: SESSION DETAIL -->
-  <div class="modal-bg @if($showSessionModal) open @endif" wire:click="if($event->target.id === 'sessionModal') closeSessionModal()">
+  <div id="sessionModal" class="modal-bg @if($showSessionModal) open @endif" wire:click="if($event->target.id === 'sessionModal') closeSessionModal()">
     <div class="modal-inner">
       <button class="modal-close" wire:click="closeSessionModal">✕</button>
       @if($selectedSession)
@@ -263,6 +329,40 @@
             <div>
               <div style="font-family:Poppins,sans-serif;font-weight:700;color:var(--v);">{{ $selectedSession['date'] }}</div>
               <div style="font-size:12px;color:var(--muted);margin-top:3px;">{{ $selectedSession['course'] }}</div>
+            </div>
+          </div>
+          <div style="font-size:13px;color:var(--txt);background:var(--bg);border-radius:10px;padding:10px;">
+            {{ $selectedSession['description'] ?: 'Aucune description' }}
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="padding:10px;background:var(--bg);border-radius:8px;">
+              <div style="font-size:11px;color:var(--muted);">Salle</div>
+              <div style="font-size:13px;font-weight:700;color:var(--txt);">{{ $selectedSession['room'] }}</div>
+            </div>
+            <div style="padding:10px;background:var(--bg);border-radius:8px;">
+              <div style="font-size:11px;color:var(--muted);">Inscrits actifs</div>
+              <div style="font-size:13px;font-weight:700;color:var(--txt);">{{ $selectedSession['attendees'] }}</div>
+            </div>
+          </div>
+          @if(!empty($selectedSession['link']))
+            <a href="{{ $selectedSession['link'] }}" target="_blank" class="btn btn-outline btn-sm">🔗 Ouvrir le lien de salle</a>
+          @endif
+          <div style="border:1px solid var(--border);border-radius:10px;padding:10px;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:8px;">Gestion des inscrits</div>
+            <input class="form-input" wire:model.live="attendeeSearch" placeholder="Rechercher un inscrit…" style="margin-bottom:8px;">
+            <div style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow:auto;">
+              @foreach($selectedSession['attendee_list'] ?? [] as $attendee)
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:var(--bg);border-radius:8px;">
+                  <div>
+                    <div style="font-size:12px;font-weight:600;">{{ $attendee['name'] }}</div>
+                    <div style="font-size:10px;color:var(--muted);">{{ $attendee['email'] }}</div>
+                  </div>
+                  <button class="btn btn-sm {{ $attendee['is_excluded'] ? 'btn-outline' : 'btn-ghost' }}"
+                    wire:click="toggleAttendee({{ $selectedSession['id'] }}, {{ $attendee['id'] }})">
+                    {{ $attendee['is_excluded'] ? 'Réactiver' : 'Exclure' }}
+                  </button>
+                </div>
+              @endforeach
             </div>
           </div>
         </div>
@@ -340,13 +440,19 @@
         </div>
 
         <div class="form-group">
+          <label class="form-label">Lien salle virtuelle (Zoom/Meet)</label>
+          <input class="form-input" wire:model="virtualRoomLink" placeholder="https://meet.google.com/..." />
+          @error('virtualRoomLink') <span style="color:var(--peachd);font-size:12px;">{{ $message }}</span> @enderror
+        </div>
+
+        <div class="form-group">
           <label class="form-label">Description</label>
           <input class="form-input" wire:model="sessionDescription" placeholder="Décrivez le contenu de la session…"/>
         </div>
 
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
           <button type="button" class="btn btn-ghost" wire:click="closeCreateModal">Annuler</button>
-          <button type="submit" class="btn btn-primary">✅ Planifier</button>
+          <button type="submit" class="btn btn-primary">{{ $selectedEventId ? '💾 Mettre à jour' : '✅ Planifier' }}</button>
         </div>
       </form>
     </div>

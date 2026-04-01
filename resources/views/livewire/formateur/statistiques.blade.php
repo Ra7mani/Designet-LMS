@@ -41,9 +41,13 @@
     </div>
     <div class="tab-bar">
       <div class="tab-item {{ $period === '7j' ? 'active' : '' }}" wire:click="switchPeriod('7j')">7 jours</div>
-      <div class="tab-item {{ $period === 'mois' ? 'active' : '' }}" wire:click="switchPeriod('mois')">Ce mois</div>
-      <div class="tab-item {{ $period === 'trimestre' ? 'active' : '' }}" wire:click="switchPeriod('trimestre')">Trimestre</div>
-      <div class="tab-item {{ $period === 'annee' ? 'active' : '' }}" wire:click="switchPeriod('annee')">Année</div>
+      <div class="tab-item {{ $period === '1m' ? 'active' : '' }}" wire:click="switchPeriod('1m')">1 mois</div>
+      <div class="tab-item {{ $period === '3m' ? 'active' : '' }}" wire:click="switchPeriod('3m')">3 mois</div>
+      <div class="tab-item {{ $period === 'all' ? 'active' : '' }}" wire:click="switchPeriod('all')">Tout</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-left:12px;">
+      <button class="btn btn-outline btn-sm" wire:click="exportCsv">Export CSV</button>
+      <button class="btn btn-outline btn-sm" wire:click="exportPdf">Export PDF</button>
     </div>
   </header>
 
@@ -53,31 +57,31 @@
       <div class="s-ico">💰</div>
       <div class="s-val">{{ number_format($monthlyRevenue) }}€</div>
       <div class="s-lbl">Revenus du mois</div>
-      <div class="s-trend trend-up">↑ +22%</div>
+      <div class="s-trend trend-up">Période active</div>
     </div>
     <div class="stat-card" style="border-top:3px solid var(--mintd)">
       <div class="s-ico">👨‍🎓</div>
       <div class="s-val">+{{ $newStudents }}</div>
       <div class="s-lbl">Nouveaux inscrits</div>
-      <div class="s-trend trend-up">↑ +{{ $newStudentsPercent }}%</div>
+      <div class="s-trend @if($newStudentsPercent < 0) trend-down @else trend-up @endif">{{ $newStudentsPercent >= 0 ? '↑' : '↓' }} {{ abs($newStudentsPercent) }}%</div>
     </div>
     <div class="stat-card" style="border-top:3px solid var(--yeld)">
       <div class="s-ico">⭐</div>
       <div class="s-val">{{ number_format($averageRating, 1) }}</div>
       <div class="s-lbl">Note moyenne</div>
-      <div class="s-trend trend-up">↑ +{{ number_format($ratingTrend, 1) }}</div>
+      <div class="s-trend @if($ratingTrend < 0) trend-down @else trend-up @endif">{{ $ratingTrend >= 0 ? '↑' : '↓' }} {{ number_format(abs($ratingTrend), 1) }}</div>
     </div>
     <div class="stat-card" style="border-top:3px solid var(--skyd)">
       <div class="s-ico">📊</div>
       <div class="s-val">{{ $avgCompletion }}%</div>
       <div class="s-lbl">Complétion moy.</div>
-      <div class="s-trend trend-up">↑ +{{ $completionTrend }}%</div>
+      <div class="s-trend @if($completionTrend < 0) trend-down @else trend-up @endif">{{ $completionTrend >= 0 ? '↑' : '↓' }} {{ abs($completionTrend) }}%</div>
     </div>
     <div class="stat-card" style="border-top:3px solid var(--rosed)">
       <div class="s-ico">⏱️</div>
       <div class="s-val">{{ $hoursTeachedThisMonth }}h</div>
       <div class="s-lbl">Enseignées ce mois</div>
-      <div class="s-trend trend-up">↑ +{{ $hoursTrend }}h</div>
+      <div class="s-trend @if($hoursTrend < 0) trend-down @else trend-up @endif">{{ $hoursTrend >= 0 ? '↑' : '↓' }} {{ abs($hoursTrend) }}h</div>
     </div>
   </div>
 
@@ -153,6 +157,61 @@
         </div>
       </div>
 
+      <div class="chart-area">
+        <div class="sec-hdr" style="margin-bottom:16px;"><span class="sec-title">📉 Rétention & Abandon</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="rev-card">
+            <div class="rev-val">{{ $this->retentionStats['retention'] }}%</div>
+            <div class="rev-lbl">Taux de rétention</div>
+          </div>
+          <div class="rev-card">
+            <div class="rev-val">{{ $this->retentionStats['dropout'] }}%</div>
+            <div class="rev-lbl">Taux d'abandon</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-area">
+        <div class="sec-hdr" style="margin-bottom:16px;"><span class="sec-title">📚 Leçons les plus vues / abandonnées</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <div style="font-weight:700;margin-bottom:8px;">Plus vues</div>
+            @forelse($this->lessonInsights['viewed'] as $lesson)
+              <div style="padding:8px;background:var(--bg);border-radius:8px;margin-bottom:6px;">
+                <div style="font-size:12px;font-weight:600;">{{ $lesson['title'] }}</div>
+                <div style="font-size:11px;color:var(--muted);">{{ $lesson['views'] }} vues</div>
+              </div>
+            @empty
+              <div style="font-size:12px;color:var(--muted);">Aucune donnée.</div>
+            @endforelse
+          </div>
+          <div>
+            <div style="font-weight:700;margin-bottom:8px;">Plus abandonnées</div>
+            @forelse($this->lessonInsights['abandoned'] as $lesson)
+              <div style="padding:8px;background:var(--bg);border-radius:8px;margin-bottom:6px;">
+                <div style="font-size:12px;font-weight:600;">{{ $lesson['title'] }}</div>
+                <div style="font-size:11px;color:var(--muted);">{{ $lesson['abandons'] }} abandons</div>
+              </div>
+            @empty
+              <div style="font-size:12px;color:var(--muted);">Aucune donnée.</div>
+            @endforelse
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-area">
+        <div class="sec-hdr" style="margin-bottom:16px;"><span class="sec-title">🏆 Classement des cours</span></div>
+        @foreach($this->rankedCourses as $rank => $course)
+          <div class="course-perf-item">
+            <div class="cpi-ico">#{{ $rank + 1 }}</div>
+            <div class="cpi-info">
+              <div class="cpi-name">{{ $course['title'] }}</div>
+              <div class="cpi-sub">{{ number_format($course['revenue']) }}€ · ⭐ {{ number_format($course['rating'],1) }} · 👥 {{ $course['enrollments'] }}</div>
+            </div>
+          </div>
+        @endforeach
+      </div>
+
       <!-- PERFORMANCE PAR COURS -->
       <div class="chart-area">
         <div class="sec-hdr" style="margin-bottom:16px;"><span class="sec-title">📚 Performance par cours</span></div>
@@ -220,7 +279,7 @@
         <div style="text-align:center;margin-bottom:16px;">
           <div style="font-family:Poppins,sans-serif;font-size:48px;font-weight:900;color:var(--v);">{{ number_format($averageRating, 1) }}</div>
           <div style="font-size:22px;margin-bottom:4px;">⭐⭐⭐⭐⭐</div>
-          <div style="font-size:12px;color:var(--muted);">Basé sur 312 avis</div>
+          <div style="font-size:12px;color:var(--muted);">Basé sur les avis approuvés</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;">
           @foreach($this->ratingsBreakdown as $rating)
@@ -247,6 +306,16 @@
               <span style="margin-left:auto;font-size:12px;color:var(--yeld);">@for($i = 0; $i < $review['rating']; $i++)⭐@endfor</span>
             </div>
             <div style="font-size:12px;color:var(--txt);line-height:1.5;font-style:italic;">{{ $review['text'] }}</div>
+            @if(!empty($review['response']))
+              <div style="margin-top:8px;padding:8px;background:rgba(13,148,136,.08);border-radius:8px;font-size:12px;">
+                <strong>Votre réponse:</strong> {{ $review['response'] }}
+              </div>
+            @else
+              <div style="margin-top:8px;display:flex;gap:6px;">
+                <input class="form-input" wire:model.live="reviewReplyInputs.{{ $review['id'] }}" placeholder="Répondre à cet avis..." />
+                <button class="btn btn-sm btn-primary" wire:click="replyToReview({{ $review['id'] }})">Répondre</button>
+              </div>
+            @endif
           </div>
           @endforeach
         </div>
@@ -266,7 +335,7 @@
 
     function initCharts() {
       const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
-      const vals = [1840, 2020, 1760, 2160, 2330, 2840, 0, 0, 0, 0, 0, 0];
+      const vals = @json($this->monthlyRevenueData());
       const maxV = Math.max(...vals.filter(v => v > 0));
       const chart = document.getElementById('revenueChart');
       const labels = document.getElementById('chartLabels');

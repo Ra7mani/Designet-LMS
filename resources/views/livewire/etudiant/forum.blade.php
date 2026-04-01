@@ -1,4 +1,4 @@
-<div>
+<div wire:poll.5s="refreshRealtimeData">
 <style>
 /* HEADER */
 .hdr{position:sticky;top:0;z-index:50;background:rgba(245,243,255,.92);backdrop-filter:blur(14px);border-bottom:1.5px solid var(--border);padding:15px 28px;display:flex;align-items:center;gap:14px;}
@@ -41,6 +41,7 @@
   <div class="tabs">
     <div class="tab {{ $view === 'forum' ? 'active' : '' }}" wire:click="switchTab('forum')">Forum</div>
     <div class="tab {{ $view === 'messages' ? 'active' : '' }}" wire:click="switchTab('messages')">Messages privés</div>
+    <div class="tab {{ $view === 'announcements' ? 'active' : '' }}" wire:click="switchTab('announcements')">Annonces</div>
   </div>
   
 </header>
@@ -125,7 +126,7 @@
     @endif
   </div>
 </div>
-@else
+@elseif($view === 'messages')
 <div class="forum-layout">
   <!-- LEFT USERS -->
   <div class="channels">
@@ -197,6 +198,31 @@
       </div>
     @endif
   </div>
+</div>
+@else
+<div style="padding:24px;max-width:900px;margin:0 auto;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+    <h2 style="font-size:20px;font-weight:700;color:var(--txt);">📢 Annonces de cours</h2>
+  </div>
+
+  @forelse($announcements as $ann)
+    <div style="background:#fff;border:1.5px solid var(--border);border-left:4px solid {{ $ann['is_pinned'] ? '#D97706' : 'var(--v)' }};border-radius:12px;padding:16px 18px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:start;">
+        <div style="font-size:15px;font-weight:700;color:var(--txt);">
+          @if($ann['is_pinned'])📌 @endif{{ $ann['title'] }}
+        </div>
+        <div style="font-size:11px;color:var(--muted);white-space:nowrap;">{{ $ann['published_at'] ?? '' }}</div>
+      </div>
+      <div style="font-size:13px;color:var(--txt);margin-top:8px;line-height:1.6;">{{ $ann['content'] }}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px;">
+        {{ $ann['course'] }} · {{ $ann['author'] }}
+      </div>
+    </div>
+  @empty
+    <div style="text-align:center;color:var(--muted);padding:34px 0;font-size:14px;">
+      Aucune annonce disponible pour vos cours.
+    </div>
+  @endforelse
 </div>
 @endif
 

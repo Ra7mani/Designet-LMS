@@ -97,6 +97,7 @@
 .question-num{font-size:12px;font-weight:700;color:var(--v);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;}
 .question-text{font-family:'Poppins',sans-serif;font-size:18px;font-weight:700;color:var(--txt);margin-bottom:24px;line-height:1.5;}
 .answers-list{display:flex;flex-direction:column;gap:12px;}
+.text-answer{width:100%;min-height:140px;border:2px solid var(--border);border-radius:12px;padding:12px;font-size:14px;color:var(--txt);}
 .answer-opt{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:var(--rm);border:2px solid var(--border);background:#fff;cursor:pointer;transition:all .2s;}
 .answer-opt:hover{border-color:var(--vl);background:var(--vxl);}
 .answer-opt.selected{border-color:var(--v);background:var(--vxl);}
@@ -390,18 +391,27 @@
 
         <div class="answers-list">
           @php
+            $questionType = $question['question_type'] ?? 'qcm';
             $answers = \App\Models\Answer::where('question_id', $question['id'])->orderBy('order')->get();
             $letters = ['A', 'B', 'C', 'D', 'E', 'F'];
           @endphp
-          @foreach($answers as $i => $answer)
-            <div
-              class="answer-opt {{ isset($userAnswers[$question['id']]) && $userAnswers[$question['id']] == $answer->id ? 'selected' : '' }}"
-              wire:click="selectAnswer({{ $answer->id }})"
-            >
-              <div class="answer-letter">{{ $letters[$i] ?? ($i + 1) }}</div>
-              <div class="answer-text">{{ $answer->content }}</div>
-            </div>
-          @endforeach
+          @if($questionType === 'texte')
+            <textarea
+              class="text-answer"
+              placeholder="Saisis ta réponse ici..."
+              wire:change="saveTextAnswer($event.target.value)"
+            >{{ $userAnswers[$question['id']] ?? '' }}</textarea>
+          @else
+            @foreach($answers as $i => $answer)
+              <div
+                class="answer-opt {{ isset($userAnswers[$question['id']]) && $userAnswers[$question['id']] == $answer->id ? 'selected' : '' }}"
+                wire:click="selectAnswer({{ $answer->id }})"
+              >
+                <div class="answer-letter">{{ $letters[$i] ?? ($i + 1) }}</div>
+                <div class="answer-text">{{ $answer->content }}</div>
+              </div>
+            @endforeach
+          @endif
         </div>
       @endif
     </div>

@@ -7,7 +7,9 @@ use App\Models\ForumChannel;
 use App\Models\ForumMessage;
 use App\Models\MessageReaction;
 use App\Models\ReportedMessage;
+use App\Models\Announcement;
 use App\Models\User;
+use App\Notifications\FormateurActivityNotification;
 use Livewire\Component;
 
 class Forum extends Component
@@ -32,9 +34,12 @@ class Forum extends Component
 
     public $searchQuery = '';
 
+    public $announcements = [];
+
     public function mount(): void
     {
         $this->loadChannels();
+        $this->loadAnnouncements();
     }
 
     public function loadChannels(): void
@@ -102,6 +107,15 @@ class Forum extends Component
             'content' => $this->messageContent,
         ]);
 
+        $formateur = $this->selectedChannel->cours?->formateur;
+        if ($formateur) {
+            $formateur->notify(new FormateurActivityNotification(
+                'Nouveau message forum',
+                auth()->user()->name.' a publié un nouveau message dans '.$this->selectedChannel->name,
+                route('formateur.forum')
+            ));
+        }
+
         $this->messageContent = '';
         $this->selectChannel($this->selectedChannel->id);
         $this->dispatch('scroll-to-bottom');
@@ -150,7 +164,32 @@ class Forum extends Component
         $this->view = $tab;
         if ($tab === 'messages') {
             $this->loadDmUsers();
+            $this->refreshRealtimeData();
         }
+        if ($tab === 'announcements') {
+            $this->loadAnnouncements();
+        }
+    }
+
+    public function loadAnnouncements(): void
+    {
+        $courseIds = auth()->user()->inscriptions()->pluck('cours_id');
+
+        $this->announcements = Announcement::whereIn('cours_id', $courseIds)
+            ->with('cours', 'user')
+            ->orderBy('is_pinned', 'desc')
+            ->orderBy('published_at', 'desc')
+            ->get()
+            ->map(fn ($ann) => [
+                'id' => $ann->id,
+                'title' => $ann->title,
+                'content' => $ann->content,
+                'course' => $ann->cours->name ?? 'Cours',
+                'author' => $ann->user->name ?? 'Formateur',
+                'is_pinned' => $ann->is_pinned,
+                'published_at' => $ann->published_at?->format('d M Y H:i'),
+            ])
+            ->toArray();
     }
 
     public function loadDmUsers(): void
@@ -234,6 +273,19 @@ class Forum extends Component
             'content' => $this->dmContent,
         ]);
 
+        $sharedCourseIds = auth()->user()->inscriptions()->pluck('cours_id');
+        $formateur = User::where('role', 'formateur')
+            ->whereHas('cours', fn ($q) => $q->whereIn('id', $sharedCourseIds))
+            ->first();
+
+        if ($formateur) {
+            $formateur->notify(new FormateurActivityNotification(
+                'Nouveau message privé étudiant',
+                auth()->user()->name.' a envoyé un message privé à un étudiant',
+                route('formateur.forum')
+            ));
+        }
+
         $this->dmContent = '';
         $this->loadDmMessages();
         $this->dispatch('scroll-to-bottom');
@@ -248,6 +300,29 @@ class Forum extends Component
             'dmUsers' => $this->dmUsers,
             'dmWith' => $this->dmWith,
             'dmMessages' => $this->dmMessages,
+            'announcements' => $this->announcements,
         ])->layout('layouts.etudiant');
+    }
+
+    public function refreshRealtimeData(): void
+    {
+        if ($this->view === 'forum' && $this->selectedChannel) {
+            $this->selectChannel($this->selectedChannel->id);
+
+            return;
+        }
+
+        if ($this->view === 'messages') {
+            $this->loadDmUsers();
+            if ($this->dmWith) {
+                $this->loadDmMessages();
+            }
+
+            return;
+        }
+
+        if ($this->view === 'announcements') {
+            $this->loadAnnouncements();
+        }
     }
 }

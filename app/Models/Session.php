@@ -24,11 +24,17 @@ class Session extends Model
         'formateur_id',
         'virtual_room_link',
         'max_attendees',
+        'auto_reminder_30m_enabled',
+        'auto_reminder_30m_sent_at',
+        'excluded_attendee_ids',
     ];
 
     protected $casts = [
         'start_time' => 'datetime',
         'end_time' => 'datetime',
+        'auto_reminder_30m_enabled' => 'boolean',
+        'auto_reminder_30m_sent_at' => 'datetime',
+        'excluded_attendee_ids' => 'array',
     ];
 
     public function cours()

@@ -13,12 +13,16 @@ class Avis extends Model
         'inscription_id',
         'rating',
         'comment',
+        'formateur_response',
+        'response_date',
+        'response_by',
         'is_approved',
     ];
 
     protected $casts = [
         'is_approved' => 'boolean',
         'rating' => 'integer',
+        'response_date' => 'datetime',
     ];
 
     public function inscription()
@@ -29,6 +33,11 @@ class Avis extends Model
     public function user()
     {
         return $this->hasOneThrough(User::class, Inscription::class, 'id', 'id', 'inscription_id', 'etudiant_id');
+    }
+
+    public function responder()
+    {
+        return $this->belongsTo(User::class, 'response_by');
     }
 
     /**

@@ -8,9 +8,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ForumMessage extends Model
 {
-    protected $fillable = ['channel_id', 'user_id', 'content', 'is_read'];
+    protected $fillable = ['channel_id', 'user_id', 'content', 'is_read', 'is_pinned', 'is_solution', 'is_hidden', 'pinned_by'];
 
-    protected $casts = ['is_read' => 'boolean'];
+    protected $casts = [
+        'is_read' => 'boolean',
+        'is_pinned' => 'boolean',
+        'is_solution' => 'boolean',
+        'is_hidden' => 'boolean',
+    ];
 
     public function channel(): BelongsTo
     {
@@ -20,6 +25,11 @@ class ForumMessage extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function pinnedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'pinned_by');
     }
 
     public function reactions(): HasMany

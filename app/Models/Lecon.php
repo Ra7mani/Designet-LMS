@@ -20,6 +20,8 @@ class Lecon extends Model
         'duration',
         'order',
         'type',
+        'view_count',
+        'abandon_count',
     ];
 
     protected $casts = [

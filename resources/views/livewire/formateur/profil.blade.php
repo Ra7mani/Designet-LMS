@@ -63,8 +63,10 @@
     <p>Gérez vos informations et paramètres</p>
   </div>
   <div style="display:flex;gap:10px;">
-    <button class="btn btn-outline btn-sm" id="editBtn" onclick="toggleEdit()">✏️ Modifier le profil</button>
-    <button class="btn btn-primary btn-sm" id="saveBtn" style="display:none;" onclick="saveProfile()">✅ Enregistrer</button>
+    <button class="btn btn-outline btn-sm" wire:click="toggleEditMode">✏️ Modifier le profil</button>
+    @if($editMode)
+      <button class="btn btn-primary btn-sm" wire:click="saveProfile">✅ Enregistrer</button>
+    @endif
   </div>
 </div>
 
@@ -73,7 +75,14 @@
     <!-- LEFT -->
     <div class="profil-left">
       <div class="avatar-section">
-        <div class="avatar-big" onclick="showToast('📷 Changer la photo')">{{ substr(auth()->user()->name, 0, 2) }}</div>
+        <label class="avatar-big" for="avatarUploadInput">
+          @if($avatarPreview)
+            <img src="{{ $avatarPreview }}?t={{ now()->timestamp }}" alt="{{ auth()->user()->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />
+          @else
+            {{ substr(auth()->user()->name, 0, 2) }}
+          @endif
+        </label>
+        <input id="avatarUploadInput" type="file" wire:model="avatar" accept="image/*" style="display:none;" />
         <div class="profil-name">{{ auth()->user()->name }}</div>
         <div class="profil-title">Formateur</div>
         <div style="display:flex;justify-content:center;gap:6px;align-items:center;margin-top:6px;font-size:12px;color:rgba(255,255,255,.9);">
@@ -95,8 +104,8 @@
             <div class="psr-lbl">Note</div>
           </div>
           <div class="psr-item">
-            <div class="psr-val">0€</div>
-            <div class="psr-lbl">Revenus</div>
+            <div class="psr-val">{{ auth()->user()->cours()->withCount('inscriptions')->get()->sum('inscriptions_count') }}</div>
+            <div class="psr-lbl">Avis</div>
           </div>
         </div>
       </div>
@@ -118,6 +127,13 @@
           </div>
         </div>
         <div class="info-row">
+          <div class="info-ico">📍</div>
+          <div>
+            <div class="info-lbl">Localisation</div>
+            <div class="info-val">{{ auth()->user()->location ?? 'Non renseignée' }}</div>
+          </div>
+        </div>
+        <div class="info-row">
           <div class="info-ico">📅</div>
           <div>
             <div class="info-lbl">Formateur depuis</div>
@@ -132,72 +148,74 @@
 
       <!-- BIOGRAPHIE -->
       <div class="card card-p">
-        <div class="card-title">📝 Biographie &amp; Expertise <span class="card-sub"><a href="#" onclick="toggleEdit()" style="color:#0d9488;font-weight:600;text-decoration:none;">Modifier</a></span></div>
-        <div id="bioView">
+        <div class="card-title">📝 Biographie &amp; Expertise <span class="card-sub"><a href="#" wire:click.prevent="toggleEditMode" style="color:#0d9488;font-weight:600;text-decoration:none;">Modifier</a></span></div>
+        <div>
           <p style="font-size:14px;color:#1f2937;line-height:1.75;margin-bottom:16px;">
-            {{ auth()->user()->bio ?? 'Aucune biographie renseignée.' }}
+            {{ $biography ?: 'Aucune biographie renseignée.' }}
           </p>
-        </div>
-        <div id="bioEdit" style="display:none;">
-          <textarea class="form-input" rows="5" id="bioTextarea" style="resize:vertical;">{{ auth()->user()->bio ?? '' }}</textarea>
         </div>
         <div style="margin-top:16px;">
           <div style="font-size:12px;font-weight:700;color:#6b7280;margin-bottom:10px;">DOMAINES D'EXPERTISE</div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;min-height:30px;">
-            <button class="skill-tag" style="border-style:dashed;background:#fff;color:#0d9488;" onclick="showToast('➕ Compétence ajoutée')">+ Ajouter</button>
+              <button class="skill-tag" style="border-style:dashed;background:#fff;color:#0d9488;" wire:click="addSkill">+ Ajouter</button>
           </div>
         </div>
       </div>
 
       <!-- FORMULAIRE ÉDITION -->
-      <div class="card card-p" id="editFormCard" style="display:none;">
+      @if($editMode)
+      <div class="card card-p" id="editFormCard">
         <div class="card-title">✏️ Modifier les informations</div>
         <div class="edit-form">
           <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label">Prénom</label>
-              <input class="form-input" id="firstNameInput" value="{{ explode(' ', auth()->user()->name)[0] }}"/>
+              <input class="form-input" wire:model.live="firstName" />
             </div>
             <div class="form-group">
               <label class="form-label">Nom</label>
-              <input class="form-input" id="lastNameInput" value="{{ isset(explode(' ', auth()->user()->name)[1]) ? explode(' ', auth()->user()->name)[1] : '' }}"/>
+              <input class="form-input" wire:model.live="lastName" />
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Titre professionnel</label>
-            <input class="form-input" id="titleInput" value="Formateur"/>
+            <label class="form-label">Spécialité</label>
+            <input class="form-input" wire:model.live="professionalObjective" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Biographie</label>
+            <textarea class="form-input" rows="5" wire:model.live="biography" style="resize:vertical;"></textarea>
           </div>
           <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label">Email</label>
-              <input class="form-input" type="email" id="emailInput" value="{{ auth()->user()->email }}"/>
+              <input class="form-input" type="email" wire:model.live="email" />
             </div>
             <div class="form-group">
               <label class="form-label">Téléphone</label>
-              <input class="form-input" id="phoneInput" value="{{ auth()->user()->phone ?? '' }}"/>
+              <input class="form-input" wire:model.live="phone" />
             </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Localisation</label>
+            <input class="form-input" wire:model.live="location" />
           </div>
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">Ville</label>
-              <input class="form-input" id="cityInput" value=""/>
+              <label class="form-label">LinkedIn</label>
+              <input class="form-input" type="url" wire:model.live="linkedinUrl" />
             </div>
             <div class="form-group">
-              <label class="form-label">Pays</label>
-              <select class="form-input">
-                <option selected>Tunisie</option>
-                <option>Maroc</option>
-                <option>Algérie</option>
-                <option>France</option>
-              </select>
+              <label class="form-label">GitHub</label>
+              <input class="form-input" type="url" wire:model.live="githubUrl" />
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">Portfolio URL</label>
-            <input class="form-input" type="url" id="portfolioInput" value=""/>
+            <input class="form-input" type="url" wire:model.live="portfolioUrl" />
           </div>
         </div>
       </div>
+      @endif
 
       <!-- MES COURS (aperçu) -->
       <div class="card card-p">
@@ -292,6 +310,7 @@
             </label>
           </div>
           <div style="padding:14px 24px;display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="{{ route('formateur.parametres') }}" class="btn btn-outline btn-sm">⚙️ Ouvrir Paramètres</a>
             <form method="POST" action="{{ route('logout') }}" style="display:inline;">
               @csrf
               <button type="submit" class="btn btn-danger btn-sm">👋 Déconnexion</button>
@@ -305,24 +324,3 @@
 </div>
 
 </div>
-
-<script>
-var editing = false;
-function toggleEdit(){
-  editing = !editing;
-  document.getElementById('editFormCard').style.display = editing ? '' : 'none';
-  document.getElementById('bioEdit').style.display = editing ? '' : 'none';
-  document.getElementById('bioView').style.display = editing ? 'none' : '';
-  document.getElementById('editBtn').style.display = editing ? 'none' : '';
-  document.getElementById('saveBtn').style.display = editing ? '' : 'none';
-}
-function saveProfile(){
-  editing = false;
-  document.getElementById('editFormCard').style.display = 'none';
-  document.getElementById('bioEdit').style.display = 'none';
-  document.getElementById('bioView').style.display = '';
-  document.getElementById('editBtn').style.display = '';
-  document.getElementById('saveBtn').style.display = 'none';
-  showToast('✅ Profil mis à jour avec succès !');
-}
-</script>

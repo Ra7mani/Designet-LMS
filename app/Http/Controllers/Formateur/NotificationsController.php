@@ -11,6 +11,26 @@ use Illuminate\Support\Facades\Auth;
 
 class NotificationsController extends Controller
 {
+    public function sidebarStats()
+    {
+        $authUser = Auth::user();
+        $courseIds = $authUser->cours()->pluck('id');
+
+        $studentsCount = $authUser->cours()->withCount('inscriptions')->get()->sum('inscriptions_count');
+        $unreadMessages = DirectMessage::where('receiver_id', $authUser->id)
+            ->where('is_read', false)
+            ->count();
+        $forumUnread = ForumMessage::whereHas('channel', fn ($q) => $q->whereIn('cours_id', $courseIds))
+            ->where('user_id', '!=', $authUser->id)
+            ->where('is_read', false)
+            ->count();
+
+        return response()->json([
+            'students_count' => $studentsCount,
+            'messages_unread' => $unreadMessages + $forumUnread,
+        ]);
+    }
+
     public function index()
     {
         $authUser = Auth::user();

@@ -3,6 +3,7 @@
 namespace App\Livewire\Etudiant;
 
 use App\Enums\EnrollStatus;
+use App\Notifications\FormateurActivityNotification;
 use App\Models\Avis;
 use App\Models\Cours;
 use App\Models\Inscription;
@@ -117,6 +118,11 @@ class DetailCours extends Component
                 'comment' => $this->comment ?: null,
                 'is_approved' => true, // Auto-approve for now
             ]);
+            $this->cours->formateur?->notify(new FormateurActivityNotification(
+                'Nouvel avis reçu',
+                auth()->user()->name.' a laissé un avis sur votre cours "'.($this->cours->title ?? $this->cours->nom).'"',
+                route('formateur.statistiques')
+            ));
             $this->hasReviewed = true;
             session()->flash('success', 'Merci pour votre avis !');
         }

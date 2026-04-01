@@ -18,10 +18,18 @@ class Quiz extends Model
         'passing_score',
         'max_attempts',
         'type',
+        'is_published',
+        'random_order',
+        'available_from',
+        'available_until',
     ];
 
     protected $casts = [
         'type' => QuizType::class,
+        'is_published' => 'boolean',
+        'random_order' => 'boolean',
+        'available_from' => 'datetime',
+        'available_until' => 'datetime',
     ];
 
     public function cours()

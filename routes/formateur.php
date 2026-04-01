@@ -7,6 +7,7 @@ use App\Livewire\Formateur\MesCours;
 use App\Livewire\Formateur\MesEtudiants;
 use App\Livewire\Formateur\Planning;
 use App\Livewire\Formateur\Profil;
+use App\Livewire\Formateur\Parametres;
 use App\Livewire\Formateur\Quiz;
 use App\Livewire\Formateur\Statistiques;
 use Illuminate\Support\Facades\Route;
@@ -26,9 +27,11 @@ Route::middleware(['auth', 'verified', 'role:formateur'])
         Route::get('/quiz', Quiz::class)->name('quiz');
         Route::get('/statistiques', Statistiques::class)->name('statistiques');
         Route::get('/profil', Profil::class)->name('profil');
+        Route::get('/parametres', Parametres::class)->name('parametres');
 
         // API routes for AJAX
         Route::get('/api/search', 'App\Http\Controllers\Formateur\SearchController@search')->name('api.search');
         Route::get('/api/notifications', 'App\Http\Controllers\Formateur\NotificationsController@index')->name('api.notifications');
+        Route::get('/api/sidebar-stats', 'App\Http\Controllers\Formateur\NotificationsController@sidebarStats')->name('api.sidebar-stats');
 
     });

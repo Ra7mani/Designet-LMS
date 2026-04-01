@@ -5,6 +5,7 @@ namespace App\Livewire\Etudiant;
 use App\Models\Inscription;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Component;
 
@@ -101,17 +102,22 @@ class QuizExamens extends Component
         }
 
         // Create new attempt
+        $questionsCollection = $quiz->questions;
+        if (Schema::hasColumn('quizzes', 'random_order') && ($quiz->random_order ?? false)) {
+            $questionsCollection = $questionsCollection->shuffle()->values();
+        }
+
         $this->currentAttempt = QuizAttempt::create([
             'quiz_id' => $quizId,
             'user_id' => auth()->id(),
-            'total_questions' => $quiz->questions->count(),
-            'total_points' => $quiz->questions->sum('points'),
+            'total_questions' => $questionsCollection->count(),
+            'total_points' => $questionsCollection->sum('points'),
             'status' => 'in_progress',
             'started_at' => now(),
         ]);
 
         $this->currentQuiz = $quiz;
-        $this->questions = $quiz->questions->toArray();
+        $this->questions = $questionsCollection->toArray();
         $this->currentQuestionIndex = 0;
         $this->userAnswers = [];
         $this->timeRemaining = $quiz->duration * 60; // Convert to seconds
@@ -154,6 +160,23 @@ class QuizExamens extends Component
         $this->userAnswers[$question['id']] = $answerId;
 
         // Save progress
+        $this->currentAttempt->update([
+            'answers' => $this->userAnswers,
+        ]);
+    }
+
+    public function saveTextAnswer(string $answer)
+    {
+        if (! $this->quizStarted || ! $this->currentQuiz) {
+            return;
+        }
+
+        $question = $this->questions[$this->currentQuestionIndex] ?? null;
+        if (! $question) {
+            return;
+        }
+
+        $this->userAnswers[$question['id']] = trim($answer);
         $this->currentAttempt->update([
             'answers' => $this->userAnswers,
         ]);
@@ -204,6 +227,9 @@ class QuizExamens extends Component
 
         foreach ($questions as $question) {
             $userAnswerId = $this->userAnswers[$question->id] ?? null;
+            if (($question->question_type ?? 'qcm') === 'texte') {
+                continue;
+            }
             $correctAnswer = $question->answers->where('is_correct', true)->first();
 
             if ($correctAnswer && $userAnswerId == $correctAnswer->id) {

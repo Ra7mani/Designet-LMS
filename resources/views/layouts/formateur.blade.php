@@ -34,7 +34,11 @@
   </a>
   <a class="nav-item{{ request()->routeIs('formateur.etudiants') ? ' active' : '' }}" href="{{ route('formateur.etudiants') }}">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    Mes Étudiants<span class="nav-badge">{{ auth()->user()->cours()->withCount('inscriptions')->get()->sum('inscriptions_count') }}</span>
+    Mes Étudiants<span class="nav-badge" id="sidebarStudentsBadge">{{ auth()->user()->cours()->withCount('inscriptions')->get()->sum('inscriptions_count') }}</span>
+  </a>
+  <a class="nav-item{{ request()->routeIs('formateur.forum') ? ' active' : '' }}" href="{{ route('formateur.forum') }}">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Messages non lus<span class="nav-badge" id="sidebarMessagesBadge">0</span>
   </a>
 
   <span class="nav-section-label">Pédagogie</span>
@@ -206,6 +210,7 @@ function loadNotifications() {
     .catch(error => {
       console.error('Error loading notifications:', error);
       notifList.innerHTML = '<div class="notif-empty">Erreur lors du chargement</div>';
+      if (typeof showToast === 'function') showToast('Erreur API notifications');
     });
 }
 
@@ -231,6 +236,23 @@ document.addEventListener('click', function(e) {
     loadNotifications();
   }
 });
+
+function loadSidebarStats() {
+  fetch('/formateur/api/sidebar-stats')
+    .then(response => response.json())
+    .then(data => {
+      const studentsBadge = document.getElementById('sidebarStudentsBadge');
+      const messagesBadge = document.getElementById('sidebarMessagesBadge');
+      if (studentsBadge) studentsBadge.textContent = data?.students_count ?? 0;
+      if (messagesBadge) messagesBadge.textContent = data?.messages_unread ?? 0;
+    })
+    .catch(() => { if (typeof showToast === 'function') showToast('Erreur API sidebar'); });
+}
+
+setInterval(loadSidebarStats, 5000);
+setInterval(loadNotifications, 10000);
+loadSidebarStats();
+loadNotifications();
 
 </script>
 

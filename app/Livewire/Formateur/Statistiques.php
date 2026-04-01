@@ -5,9 +5,11 @@ namespace App\Livewire\Formateur;
 use App\Models\Avis;
 use App\Models\Cours;
 use App\Models\Inscription;
+use App\Models\Lecon;
 use App\Models\Paiement;
 use App\Models\Session;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -15,7 +17,7 @@ use Livewire\Component;
 #[Layout('layouts.formateur')]
 class Statistiques extends Component
 {
-    public $period = 'mois';
+    public $period = '1m';
 
     public $totalRevenue = 0;
 
@@ -38,6 +40,8 @@ class Statistiques extends Component
     public $hoursTeachedThisMonth = 0;
 
     public $hoursTrend = 0;
+
+    public $reviewReplyInputs = [];
 
     protected $formateur;
 
@@ -163,13 +167,17 @@ class Statistiques extends Component
                 continue;
             }
 
-            $initials = strtoupper(substr($etudiant->first_name, 0, 1).substr($etudiant->last_name, 0, 1));
+            $name = $etudiant->name ?? 'Étudiant';
+            $parts = preg_split('/\s+/', trim($name)) ?: [];
+            $initials = strtoupper(substr($parts[0] ?? 'E', 0, 1).substr($parts[1] ?? $parts[0] ?? 'T', 0, 1));
 
             $result[] = [
+                'id' => $review->id,
                 'initials' => $initials,
-                'name' => $etudiant->first_name.' '.substr($etudiant->last_name, 0, 1).'.',
+                'name' => $name,
                 'rating' => $review->rating,
                 'text' => '"'.$review->comment.'"',
+                'response' => $review->formateur_response,
                 'gradient' => $gradients[$index % 4] ?? $gradients[0],
             ];
         }
@@ -210,89 +218,265 @@ class Statistiques extends Component
     {
         $this->period = $period;
         $this->loadStatistics();
-        session()->flash('message', '📊 Données : '.$period);
+        session()->flash('message', '📊 Données : '.$this->periodLabel());
     }
 
     private function loadStatistics()
     {
-        // Revenue data
         $now = Carbon::now();
+        [$periodStart, $periodEnd] = $this->periodRange();
+
+        $scopedPayments = Paiement::whereHas('inscription.cours', function ($q) {
+            $q->where('formateur_id', $this->formateur->id);
+        })
+            ->where('status', 'completed')
+            ->whereBetween('paid_at', [$periodStart, $periodEnd])
+            ->get();
+
         $allPayments = Paiement::whereHas('inscription.cours', function ($q) {
             $q->where('formateur_id', $this->formateur->id);
         })->where('status', 'completed')->get();
 
         $this->totalRevenue = (int) $allPayments->sum('amount');
+        $this->monthlyRevenue = (int) $scopedPayments->sum('amount');
+        $this->quarterlyRevenue = (int) Paiement::whereHas('inscription.cours', function ($q) {
+            $q->where('formateur_id', $this->formateur->id);
+        })
+            ->where('status', 'completed')
+            ->whereBetween('paid_at', [$now->copy()->startOfQuarter(), $now->copy()->endOfQuarter()])
+            ->sum('amount');
 
-        $monthlyPayments = $allPayments->filter(function ($p) use ($now) {
-            return $p->paid_at->month === $now->month && $p->paid_at->year === $now->year;
-        });
-        $this->monthlyRevenue = (int) $monthlyPayments->sum('amount');
+        [$previousStart, $previousEnd] = $this->previousPeriodRange();
+        $previousPayments = Paiement::whereHas('inscription.cours', function ($q) {
+            $q->where('formateur_id', $this->formateur->id);
+        })
+            ->where('status', 'completed')
+            ->whereBetween('paid_at', [$previousStart, $previousEnd])
+            ->get();
 
-        $startOfQuarter = $now->copy()->startOfQuarter();
-        $endOfQuarter = $now->copy()->endOfQuarter();
-        $quarterlyPayments = $allPayments->filter(function ($p) use ($startOfQuarter, $endOfQuarter) {
-            return $p->paid_at->between($startOfQuarter, $endOfQuarter);
-        });
-        $this->quarterlyRevenue = (int) $quarterlyPayments->sum('amount');
-
-        // New students this month
+        // New students in selected period
         $this->newStudents = Inscription::whereHas('cours', function ($q) {
             $q->where('formateur_id', $this->formateur->id);
-        })
-            ->whereMonth('enrolled_at', $now->month)
+        });
+        $this->newStudents = $this->newStudents
+            ->whereBetween('enrolled_at', [$periodStart, $periodEnd])
             ->count();
 
-        // Student count trend
-        $lastMonthCount = Inscription::whereHas('cours', function ($q) {
+        $previousStudents = Inscription::whereHas('cours', function ($q) {
             $q->where('formateur_id', $this->formateur->id);
         })
-            ->whereMonth('enrolled_at', $now->copy()->subMonth()->month)
+            ->whereBetween('enrolled_at', [$previousStart, $previousEnd])
             ->count();
-        $this->newStudentsPercent = $lastMonthCount > 0 ? round((($this->newStudents - $lastMonthCount) / $lastMonthCount) * 100) : $this->newStudents;
+        $this->newStudentsPercent = $previousStudents > 0
+            ? round((($this->newStudents - $previousStudents) / $previousStudents) * 100)
+            : $this->newStudents;
 
-        // Average rating
+        // Average rating (selected period)
         $avis = Avis::whereHas('inscription', function ($q) {
             $q->whereHas('cours', function ($qq) {
                 $qq->where('formateur_id', $this->formateur->id);
             });
-        })->approved()->get();
+        })->approved()->whereBetween('created_at', [$periodStart, $periodEnd])->get();
 
         $this->averageRating = $avis->count() > 0 ? round($avis->avg('rating'), 1) : 0;
-        $this->ratingTrend = 0.2;
 
-        // Average completion
-        $this->avgCompletion = (int) Inscription::whereHas('cours', function ($q) {
-            $q->where('formateur_id', $this->formateur->id);
-        })->avg('progress') ?? 0;
-
-        // Completion trend (vs last month)
-        $lastMonthCompletion = (int) Inscription::whereHas('cours', function ($q) {
-            $q->where('formateur_id', $this->formateur->id);
-        })->whereBetween('updated_at', [$now->copy()->subMonth()->startOfMonth(), $now->copy()->subMonth()->endOfMonth()])
-            ->avg('progress') ?? 0;
-        $this->completionTrend = max(0, $this->avgCompletion - $lastMonthCompletion);
-
-        // Hours taught from course sessions (sum of session durations)
-        $courseIds = $this->formateur->cours()->pluck('id');
-        if ($courseIds->isNotEmpty()) {
-            // Hours taught this month - calculate from sessions
-            $this->hoursTeachedThisMonth = 0;
-
-            // Hours trend (vs last month)
-            $lastMonthHours = 0;
-            $this->hoursTrend = 0;
-        }
-
-        // Rating trend calculation
-        $lastMonthAvis = Avis::whereHas('inscription', function ($q) {
+        $lastPeriodAvis = Avis::whereHas('inscription', function ($q) {
             $q->whereHas('cours', function ($qq) {
                 $qq->where('formateur_id', $this->formateur->id);
             });
+        })->approved()->whereBetween('created_at', [$previousStart, $previousEnd])->avg('rating') ?? 0;
+        $this->ratingTrend = round($this->averageRating - $lastPeriodAvis, 2);
+
+        // Completion and trend
+        $this->avgCompletion = (int) (Inscription::whereHas('cours', function ($q) {
+            $q->where('formateur_id', $this->formateur->id);
         })
-            ->approved()
-            ->whereBetween('created_at', [$now->copy()->subMonth()->startOfMonth(), $now->copy()->subMonth()->endOfMonth()])
-            ->avg('rating') ?? 0;
-        $this->ratingTrend = round($this->averageRating - $lastMonthAvis, 2);
+            ->whereBetween('updated_at', [$periodStart, $periodEnd])
+            ->avg('progress') ?? 0);
+
+        $lastCompletion = (int) (Inscription::whereHas('cours', function ($q) {
+            $q->where('formateur_id', $this->formateur->id);
+        })
+            ->whereBetween('updated_at', [$previousStart, $previousEnd])
+            ->avg('progress') ?? 0);
+        $this->completionTrend = $this->avgCompletion - $lastCompletion;
+
+        // Hours taught and trend
+        $hoursCurrent = Session::where('formateur_id', $this->formateur->id)
+            ->whereBetween('start_time', [$periodStart, $periodEnd])
+            ->get()
+            ->sum(fn ($s) => $s->start_time->diffInMinutes($s->end_time));
+        $hoursPrevious = Session::where('formateur_id', $this->formateur->id)
+            ->whereBetween('start_time', [$previousStart, $previousEnd])
+            ->get()
+            ->sum(fn ($s) => $s->start_time->diffInMinutes($s->end_time));
+
+        $this->hoursTeachedThisMonth = (int) floor($hoursCurrent / 60);
+        $this->hoursTrend = (int) floor(($hoursCurrent - $hoursPrevious) / 60);
+    }
+
+    #[Computed]
+    public function retentionStats()
+    {
+        $query = Inscription::whereHas('cours', fn ($q) => $q->where('formateur_id', $this->formateur->id));
+        $total = $query->count();
+        if ($total === 0) {
+            return ['retention' => 0, 'dropout' => 0];
+        }
+
+        $retained = (clone $query)->where('progress', '>=', 50)->count();
+        $dropped = (clone $query)->where(function ($q) {
+            $q->where('status', 'cancelled')->orWhere('progress', '<', 30);
+        })->count();
+
+        return [
+            'retention' => (int) round(($retained / $total) * 100),
+            'dropout' => (int) round(($dropped / $total) * 100),
+        ];
+    }
+
+    #[Computed]
+    public function lessonInsights()
+    {
+        $lessons = Lecon::whereHas('chapitre.cours', fn ($q) => $q->where('formateur_id', $this->formateur->id))->get();
+        $mostViewed = $lessons->sortByDesc('view_count')->take(5)->values()->map(fn ($l) => [
+            'title' => $l->title,
+            'views' => (int) $l->view_count,
+        ]);
+        $mostAbandoned = $lessons->sortByDesc('abandon_count')->take(5)->values()->map(fn ($l) => [
+            'title' => $l->title,
+            'abandons' => (int) $l->abandon_count,
+        ]);
+
+        return ['viewed' => $mostViewed, 'abandoned' => $mostAbandoned];
+    }
+
+    #[Computed]
+    public function rankedCourses()
+    {
+        $courses = Cours::where('formateur_id', $this->formateur->id)->with('inscriptions')->get()->map(function ($course) {
+            $revenue = Paiement::whereHas('inscription', fn ($q) => $q->where('cours_id', $course->id))
+                ->where('status', 'completed')
+                ->sum('amount');
+            $rating = (float) (Avis::whereHas('inscription', fn ($q) => $q->where('cours_id', $course->id))->approved()->avg('rating') ?? 0);
+            $enrollments = $course->inscriptions->count();
+
+            return [
+                'id' => $course->id,
+                'title' => $course->title,
+                'revenue' => (int) $revenue,
+                'rating' => round($rating, 1),
+                'enrollments' => $enrollments,
+                'score' => ((int) $revenue / 100) + ($rating * 10) + $enrollments,
+            ];
+        });
+
+        return $courses->sortByDesc('score')->values()->take(5);
+    }
+
+    public function replyToReview($reviewId)
+    {
+        $this->validate([
+            "reviewReplyInputs.$reviewId" => 'required|string|max:1000',
+        ]);
+
+        $review = Avis::whereHas('inscription.cours', function ($q) {
+            $q->where('formateur_id', $this->formateur->id);
+        })->findOrFail($reviewId);
+
+        $review->update([
+            'formateur_response' => trim($this->reviewReplyInputs[$reviewId]),
+            'response_by' => auth()->id(),
+            'response_date' => now(),
+        ]);
+
+        $this->reviewReplyInputs[$reviewId] = '';
+        session()->flash('message', '✅ Réponse enregistrée');
+    }
+
+    public function exportCsv()
+    {
+        $rows = [];
+        $rows[] = ['Periode', $this->periodLabel()];
+        $rows[] = ['Revenus totaux', $this->totalRevenue];
+        $rows[] = ['Revenus periode', $this->monthlyRevenue];
+        $rows[] = ['Nouveaux inscrits', $this->newStudents];
+        $rows[] = ['Note moyenne', $this->averageRating];
+        $rows[] = ['Completion moyenne', $this->avgCompletion];
+        $rows[] = ['Retention (%)', $this->retentionStats['retention']];
+        $rows[] = ['Abandon (%)', $this->retentionStats['dropout']];
+        $rows[] = [];
+        $rows[] = ['Cours', 'Revenus', 'Note', 'Inscriptions'];
+        foreach ($this->rankedCourses as $course) {
+            $rows[] = [$course['title'], $course['revenue'], $course['rating'], $course['enrollments']];
+        }
+
+        $lines = collect($rows)->map(function ($row) {
+            return collect($row)->map(function ($value) {
+                $escaped = str_replace('"', '""', (string) $value);
+                return '"'.$escaped.'"';
+            })->implode(',');
+        })->implode("\n");
+
+        $filename = 'statistiques-formateur-'.now()->format('Ymd-His').'.csv';
+        $dir = storage_path('app/exports');
+        if (! is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        file_put_contents($dir.DIRECTORY_SEPARATOR.$filename, $lines);
+
+        return response()->download($dir.DIRECTORY_SEPARATOR.$filename)->deleteFileAfterSend(true);
+    }
+
+    public function exportPdf()
+    {
+        $pdf = Pdf::loadView('pdf.stats-report', [
+            'periodLabel' => $this->periodLabel(),
+            'totalRevenue' => $this->totalRevenue,
+            'periodRevenue' => $this->monthlyRevenue,
+            'newStudents' => $this->newStudents,
+            'averageRating' => $this->averageRating,
+            'avgCompletion' => $this->avgCompletion,
+            'retention' => $this->retentionStats['retention'],
+            'dropout' => $this->retentionStats['dropout'],
+            'courses' => $this->rankedCourses,
+            'lessons' => $this->lessonInsights,
+        ]);
+
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, 'statistiques-formateur-'.now()->format('Ymd-His').'.pdf');
+    }
+
+    private function periodRange(): array
+    {
+        $now = Carbon::now();
+        return match ($this->period) {
+            '7j' => [$now->copy()->subDays(6)->startOfDay(), $now->copy()->endOfDay()],
+            '3m' => [$now->copy()->subMonths(2)->startOfMonth(), $now->copy()->endOfMonth()],
+            'all' => [Carbon::create(2000, 1, 1)->startOfDay(), $now->copy()->endOfDay()],
+            default => [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()],
+        };
+    }
+
+    private function previousPeriodRange(): array
+    {
+        [$start, $end] = $this->periodRange();
+        $days = $start->diffInDays($end) + 1;
+        $prevEnd = $start->copy()->subSecond();
+        $prevStart = $prevEnd->copy()->subDays($days - 1)->startOfDay();
+
+        return [$prevStart, $prevEnd];
+    }
+
+    private function periodLabel(): string
+    {
+        return match ($this->period) {
+            '7j' => '7 jours',
+            '3m' => '3 mois',
+            'all' => 'Tout',
+            default => '1 mois',
+        };
     }
 
     public function render()
